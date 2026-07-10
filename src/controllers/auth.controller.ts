@@ -17,7 +17,6 @@ import crypto from "crypto";
 const AuthController = {
   login: async (req: Request, res: Response) => {
     try {
-      console.log("test");
       const parsed = LoginSchema.safeParse(req.body);
       if (!parsed.success) {
         return errorResponse(res, "Input tidak valid", 400, parsed.error);
@@ -41,8 +40,33 @@ const AuthController = {
           nik: true,
           password: true,
           banned: true,
+          statusRegistrasi: true,
         },
       });
+
+      if(user?.statusRegistrasi=="DIAJUKAN"){
+        return errorResponse(
+            res,
+            "Registrasi Anda masih menunggu persetujuan admin",
+            403
+        );
+      }
+      
+      if(user?.statusRegistrasi=="DITOLAK"){
+          return errorResponse(
+              res,
+              "Registrasi Anda ditolak",
+              403
+          );
+      }
+      
+      if(user?.statusRegistrasi=="DITANGGUHKAN"){
+          return errorResponse(
+              res,
+              "Akun Anda sedang dinonaktifkan",
+              403
+          );
+      }
 
       if (!user) return errorResponse(res, "Username atau password salah", 401);
 

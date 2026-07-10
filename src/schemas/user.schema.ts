@@ -15,12 +15,10 @@ export const UserCreateSchema = z.object({
   roles: z.array(z.string().uuid()).optional(),
 
   noWA: z
-  .string()
-  .regex(/^62\d{8,13}$/, "Format no WA: 62xxxxxxxxxx")
-  .optional()
-  .nullable(),
-
-  refAnggota: z.string().optional().nullable(),
+    .string()
+    .regex(/^62\d{8,13}$/, "Format no WA: 62xxxxxxxxxx")
+    .optional()
+    .nullable(),
 });
 
 export const UserEditSchema = z.object({
@@ -36,9 +34,8 @@ export const UserEditSchema = z.object({
     .or(z.literal("")),
   roles: z.array(z.string().uuid()).optional(),
   noWA: z
-  .string()
-  .regex(/^62\d{8,13}$/, "Format no WA: 62xxxxxxxxxx")
-  .optional()
-  .nullable(),
-  refAnggota: z.string().optional().nullable(),
+    .string()
+    .regex(/^62\d{8,13}$/, "Format no WA: 62xxxxxxxxxx")
+    .optional()
+    .nullable(),
 });

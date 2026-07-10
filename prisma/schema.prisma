@@ -63,12 +63,34 @@ model AuthUserToGroup {
   @@map("auth_user_to_group")
 }
 
+enum StatusRegistrasiAkun {
+  DIAJUKAN
+  DISETUJUI
+  DITOLAK
+  DITANGGUHKAN
+}
+
 model AuthUser {
   id               String    @id @default(uuid())
   email            String    @unique @db.VarChar(100)
-  nik              String?   @unique @db.VarChar(16)   // <- kolom baru
+  nik              String?   @unique @db.VarChar(16)
   password         String?   @db.VarChar(255)
   username         String    @db.VarChar(100)
+
+  statusRegistrasi StatusRegistrasiAkun @default(DIAJUKAN) @map("status_registrasi")
+  alasanPenolakan  String?              @map("alasan_penolakan") @db.Text
+
+  // Data pendaftaran — disimpan saat DIAJUKAN, disalin ke anggota saat DISETUJUI
+  koperasiRef   String? @map("koperasi_ref")
+  alamatLengkap String? @map("alamat_lengkap") @db.Text
+  fileKtp       String? @map("file_ktp") @db.Text
+  fileSelfieKtp String? @map("file_selfie_ktp") @db.Text
+
+  noWA String? @map("no_wa") @db.VarChar(20)
+
+  // Relasi 1:1 — record anggota hanya ada setelah DISETUJUI
+  anggota kopdes_hub_sch_anggota_koperasi?
+
   banned           Boolean   @default(false)
   lastLogin        DateTime? @map("last_login")
   lastActivity     DateTime? @map("last_activity")
@@ -78,10 +100,6 @@ model AuthUser {
   verificationCode String?   @map("verification_code") @db.Text
   totpSecret       String?   @map("totp_secret") @db.VarChar(16)
   ipAddress        String?   @map("ip_address") @db.Text
-  noWA        String?  @map("no_wa") @db.VarChar(20)
-  refAnggota  String?  @unique @map("ref_anggota")
-
-  anggota     kopdes_hub_sch_anggota_koperasi? @relation(fields: [refAnggota], references: [anggota_ref], onDelete: SetNull, onUpdate: Cascade)
 
   avatar String? @db.Text
 
@@ -432,24 +450,30 @@ model ApplicationInfoTeam {
 }
 
 // MODEL KOPERASI
+// Record anggota_ref / KTA hanya dibuat setelah AuthUser.statusRegistrasi = DISETUJUI
 model kopdes_hub_sch_anggota_koperasi {
-  anggota_ref                               String                                    @id @unique(map: "kopdes_hub_sch_anggota_koperasi_unique")
-  koperasi_ref                              String
-  nama                                      String?
-  nik                                       String?
-  kode_wilayah                              String?
-  jenis_kelamin                             String?
-  status_keanggotaan                        String?
-  tanggal_terdaftar                         DateTime?                                 @db.Date
-  dibuat_pada                               DateTime?                                 @db.Timestamp(6)
-  diperbarui_pada                           DateTime?                                 @db.Timestamp(6)
-  file_ktp                                  String?
-  status_akun                               String?
-  pekerjaan                                 String?
+  anggota_ref        String             @id @default(uuid()) @unique(map: "kopdes_hub_sch_anggota_koperasi_unique")
+  userId             String?            @unique @map("user_id")
+  koperasi_ref       String
+  nama               String?
+  nik                String?
+  alamat_lengkap     String?            @db.Text
+  kode_wilayah       String?
+  jenis_kelamin      String?
+  status_keanggotaan String?            @default("AKTIF")
+  nomor_kta          String?            @unique @map("nomor_kta") @db.VarChar(30)
+  tanggal_terdaftar  DateTime?          @db.Date
+  dibuat_pada        DateTime?          @db.Timestamp(6)
+  diperbarui_pada    DateTime?          @db.Timestamp(6)
+  file_ktp           String?
+  file_selfie_ktp    String?            @map("file_selfie_ktp")
+  status_akun        String?
+  pekerjaan          String?
+
+  authUser                                  AuthUser?                                 @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   kopdes_hub_sch_referensi_wilayah          kopdes_hub_sch_referensi_wilayah?         @relation(fields: [kode_wilayah], references: [kode_wilayah], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_kode_wilayah_96a41cef")
   kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_koperasi_ref_b8176ae0")
   kopdes_hub_sch_simpanan_anggota           kopdes_hub_sch_simpanan_anggota[]
-  authUser                                  AuthUser?                                
 }
 
 model kopdes_hub_sch_karyawan_koperasi {

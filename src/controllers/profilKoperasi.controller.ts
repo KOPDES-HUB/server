@@ -216,39 +216,72 @@ import { errorResponse, successResponse } from "../lib/response";
           },
         });
   
-      let nearest = null;
-      let minDistance = Number.MAX_VALUE;
+      // let nearest = null;
+      // let minDistance = Number.MAX_VALUE;
   
+      // for (const item of koperasi) {
+      //   if (!item.koordinat_dibulatkan) continue;
+  
+      //   // diasumsikan format:
+      //   // longitude,latitude
+      //   const [lng, latitude] =
+      //     item.koordinat_dibulatkan.split(",").map(Number);
+  
+      //   const distance = calculateDistance(
+      //     lat,
+      //     long,
+      //     latitude,
+      //     lng,
+      //   );
+  
+      //   if (distance < minDistance) {
+      //     minDistance = distance;
+  
+      //     nearest = {
+      //       ...item,
+      //       distance,
+      //     };
+      //   }
+      // }
+
+      const radius = 5; // kilometer
+
+      const result = [];
+
       for (const item of koperasi) {
-        if (!item.koordinat_dibulatkan) continue;
-  
-        // diasumsikan format:
-        // longitude,latitude
-        const [lng, latitude] =
-          item.koordinat_dibulatkan.split(",").map(Number);
-  
-        const distance = calculateDistance(
-          lat,
-          long,
-          latitude,
-          lng,
-        );
-  
-        if (distance < minDistance) {
-          minDistance = distance;
-  
-          nearest = {
-            ...item,
-            distance,
-          };
-        }
+          if (!item.koordinat_dibulatkan) continue;
+
+          const [lng, latitude] =
+              item.koordinat_dibulatkan.split(",").map(Number);
+
+          const distance = calculateDistance(
+              lat,
+              long,
+              latitude,
+              lng,
+          );
+
+          if (distance <= radius) {
+              result.push({
+                  ...item,
+                  distance,
+              });
+          }
       }
-  
+
+      result.sort((a, b) => a.distance - b.distance);
+
       return successResponse(
-        res,
-        "Lokasi terdekat ditemukan",
-        nearest,
+          res,
+          "Lokasi koperasi terdekat",
+          result,
       );
+  
+      // return successResponse(
+      //   res,
+      //   "Lokasi terdekat ditemukan",
+      //   nearest,
+      // );
     } catch (error) {
       return errorResponse(
         res,

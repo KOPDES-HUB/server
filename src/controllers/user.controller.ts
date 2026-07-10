@@ -8,6 +8,7 @@ const userAnggotaInclude = {
   anggota: {
     select: {
       anggota_ref: true,
+      nomor_kta: true,
       nama: true,
       nik: true,
       koperasi_ref: true,
@@ -16,49 +17,19 @@ const userAnggotaInclude = {
   },
 };
 
-const validateUserAnggotaFields = async (
-  noWA?: string | null,
-  refAnggota?: string | null,
-  excludeUserId?: string,
-) => {
-  if (refAnggota) {
-    const anggota = await prisma.kopdes_hub_sch_anggota_koperasi.findUnique({
-      where: { anggota_ref: refAnggota },
-      select: { anggota_ref: true },
-    });
+const validateNoWA = async (noWA?: string | null, excludeUserId?: string) => {
+  if (!noWA) return null;
 
-    if (!anggota) {
-      return { error: "Anggota koperasi tidak ditemukan", status: 404 };
-    }
+  const duplicateNoWA = await prisma.authUser.findFirst({
+    where: {
+      noWA,
+      ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
+    },
+    select: { id: true },
+  });
 
-    const linkedUser = await prisma.authUser.findFirst({
-      where: {
-        refAnggota,
-        ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
-      },
-      select: { id: true },
-    });
-
-    if (linkedUser) {
-      return {
-        error: "Anggota sudah terhubung ke akun lain",
-        status: 409,
-      };
-    }
-  }
-
-  if (noWA) {
-    const duplicateNoWA = await prisma.authUser.findFirst({
-      where: {
-        noWA,
-        ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
-      },
-      select: { id: true },
-    });
-
-    if (duplicateNoWA) {
-      return { error: "Nomor WA sudah terdaftar", status: 409 };
-    }
+  if (duplicateNoWA) {
+    return { error: "Nomor WA sudah terdaftar", status: 409 };
   }
 
   return null;
@@ -216,33 +187,29 @@ const UserController = {
         );
       }
   
-      const { username, email, password, roles, noWA, refAnggota } =
-        parseResult.data;
-  
+      const { username, email, password, roles, noWA } = parseResult.data;
+
       const existingUser = await prisma.authUser.findFirst({
         where: { email },
         select: { id: true },
       });
-  
+
       if (existingUser) {
         return errorResponse(res, "Email sudah terdaftar", 409);
       }
-  
-      const anggotaValidation = await validateUserAnggotaFields(
-        noWA ?? null,
-        refAnggota ?? null,
-      );
-  
-      if (anggotaValidation) {
+
+      const noWAValidation = await validateNoWA(noWA ?? null);
+
+      if (noWAValidation) {
         return errorResponse(
           res,
-          anggotaValidation.error,
-          anggotaValidation.status,
+          noWAValidation.error,
+          noWAValidation.status,
         );
       }
-  
+
       const hashedPassword = await argon2.hash(password);
-  
+
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.authUser.create({
           data: {
@@ -250,7 +217,7 @@ const UserController = {
             email,
             password: hashedPassword,
             noWA: noWA ?? null,
-            refAnggota: refAnggota ?? null,
+            statusRegistrasi: "DISETUJUI",
           },
           include: userAnggotaInclude,
         });
@@ -284,41 +251,36 @@ const UserController = {
         );
       }
   
-      const { username, email, password, roles, noWA, refAnggota } =
-        parseResult.data;
-  
+      const { username, email, password, roles, noWA } = parseResult.data;
+
       const existingUser = await prisma.authUser.findFirst({
         where: { id },
         select: { id: true },
       });
-  
+
       if (!existingUser) {
         return errorResponse(res, "User tidak ditemukan", 404);
       }
-  
+
       const duplicateUser = await prisma.authUser.findFirst({
         where: { email, NOT: { id } },
         select: { id: true },
       });
-  
+
       if (duplicateUser) {
         return errorResponse(res, "Email sudah digunakan", 409);
       }
-  
-      const anggotaValidation = await validateUserAnggotaFields(
-        noWA,
-        refAnggota,
-        id,
-      );
-  
-      if (anggotaValidation) {
+
+      const noWAValidation = await validateNoWA(noWA, id);
+
+      if (noWAValidation) {
         return errorResponse(
           res,
-          anggotaValidation.error,
-          anggotaValidation.status,
+          noWAValidation.error,
+          noWAValidation.status,
         );
       }
-  
+
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.authUser.update({
           where: { id },
@@ -327,7 +289,6 @@ const UserController = {
             email,
             ...(password ? { password: await argon2.hash(password) } : {}),
             ...(noWA !== undefined && { noWA }),
-            ...(refAnggota !== undefined && { refAnggota }),
           },
           include: userAnggotaInclude,
         });

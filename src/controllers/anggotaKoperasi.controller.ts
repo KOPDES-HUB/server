@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { errorResponse, successResponse } from "../lib/response";
@@ -7,7 +6,21 @@ import {
   AnggotaKoperasiUpdateSchema,
 } from "../schemas/anggotaKoperasi.schema";
 
+const generateNomorKta = (): string => {
+  const part = () => String(Math.floor(1000 + Math.random() * 9000));
+  return `${part()} ${part()} ${part()} ${part()}`;
+};
+
 const includeRelations = {
+  authUser: {
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      statusRegistrasi: true,
+      noWA: true,
+    },
+  },
   kopdes_hub_sch_referensi_wilayah: {
     select: {
       kode_wilayah: true,
@@ -62,6 +75,7 @@ const AnggotaKoperasiController = {
           { nama: { contains: search, mode: "insensitive" } },
           { nik: { contains: search } },
           { anggota_ref: { contains: search } },
+          { nomor_kta: { contains: search } },
           { status_keanggotaan: { contains: search, mode: "insensitive" } },
         ];
       }
@@ -123,25 +137,24 @@ const AnggotaKoperasiController = {
       }
 
       const {
-        anggota_ref,
+        userId,
         koperasi_ref,
         nama,
         nik,
+        alamat_lengkap,
         kode_wilayah,
         jenis_kelamin,
         status_keanggotaan,
         tanggal_terdaftar,
         file_ktp,
-        status_akun,
+        file_selfie_ktp,
         pekerjaan,
       } = parseResult.data;
 
-      const finalAnggotaRef = anggota_ref ?? crypto.randomUUID();
-
-      const [existingAnggota, koperasi, wilayah] = await Promise.all([
-        prisma.kopdes_hub_sch_anggota_koperasi.findUnique({
-          where: { anggota_ref: finalAnggotaRef },
-          select: { anggota_ref: true },
+      const [user, koperasi, wilayah, existingAnggota] = await Promise.all([
+        prisma.authUser.findUnique({
+          where: { id: userId },
+          select: { id: true, statusRegistrasi: true, username: true, nik: true, alamatLengkap: true, fileKtp: true, fileSelfieKtp: true },
         }),
         prisma.kopdes_hub_sch_referensi_koperasi_wilayah.findUnique({
           where: { koperasi_ref },
@@ -153,10 +166,26 @@ const AnggotaKoperasiController = {
               select: { kode_wilayah: true },
             })
           : Promise.resolve(null),
+        prisma.kopdes_hub_sch_anggota_koperasi.findUnique({
+          where: { userId },
+          select: { anggota_ref: true },
+        }),
       ]);
 
+      if (!user) {
+        return errorResponse(res, "User tidak ditemukan", 404);
+      }
+
+      if (user.statusRegistrasi !== "DISETUJUI") {
+        return errorResponse(
+          res,
+          "Anggota hanya dapat dibuat untuk user dengan status registrasi DISETUJUI",
+          400,
+        );
+      }
+
       if (existingAnggota) {
-        return errorResponse(res, "anggota_ref sudah terdaftar", 409);
+        return errorResponse(res, "User sudah memiliki data anggota", 409);
       }
 
       if (!koperasi) {
@@ -167,9 +196,10 @@ const AnggotaKoperasiController = {
         return errorResponse(res, "Kode wilayah tidak ditemukan", 404);
       }
 
-      if (nik) {
+      const finalNik = nik ?? user.nik;
+      if (finalNik) {
         const duplicateNik = await prisma.kopdes_hub_sch_anggota_koperasi.findFirst({
-          where: { nik, koperasi_ref },
+          where: { nik: finalNik, koperasi_ref },
           select: { anggota_ref: true },
         });
 
@@ -178,22 +208,33 @@ const AnggotaKoperasiController = {
         }
       }
 
+      let nomorKta = generateNomorKta();
+      while (
+        await prisma.kopdes_hub_sch_anggota_koperasi.findFirst({
+          where: { nomor_kta: nomorKta },
+        })
+      ) {
+        nomorKta = generateNomorKta();
+      }
+
       const now = new Date();
 
       const result = await prisma.kopdes_hub_sch_anggota_koperasi.create({
         data: {
-          anggota_ref: finalAnggotaRef,
+          userId,
           koperasi_ref,
-          nama,
-          nik,
+          nama: nama ?? user.username,
+          nik: finalNik,
+          alamat_lengkap: alamat_lengkap ?? user.alamatLengkap,
           kode_wilayah,
           jenis_kelamin,
-          status_keanggotaan,
+          status_keanggotaan: status_keanggotaan ?? "AKTIF",
+          nomor_kta: nomorKta,
           tanggal_terdaftar: tanggal_terdaftar
             ? new Date(tanggal_terdaftar)
-            : null,
-          file_ktp,
-          status_akun,
+            : now,
+          file_ktp: file_ktp ?? user.fileKtp,
+          file_selfie_ktp: file_selfie_ktp ?? user.fileSelfieKtp,
           pekerjaan,
           dibuat_pada: now,
           diperbarui_pada: now,
@@ -234,12 +275,13 @@ const AnggotaKoperasiController = {
         koperasi_ref,
         nama,
         nik,
+        alamat_lengkap,
         kode_wilayah,
         jenis_kelamin,
         status_keanggotaan,
         tanggal_terdaftar,
         file_ktp,
-        status_akun,
+        file_selfie_ktp,
         pekerjaan,
       } = parseResult.data;
 
@@ -287,6 +329,7 @@ const AnggotaKoperasiController = {
           ...(koperasi_ref !== undefined && { koperasi_ref }),
           ...(nama !== undefined && { nama }),
           ...(nik !== undefined && { nik }),
+          ...(alamat_lengkap !== undefined && { alamat_lengkap }),
           ...(kode_wilayah !== undefined && { kode_wilayah }),
           ...(jenis_kelamin !== undefined && { jenis_kelamin }),
           ...(status_keanggotaan !== undefined && { status_keanggotaan }),
@@ -296,7 +339,7 @@ const AnggotaKoperasiController = {
               : null,
           }),
           ...(file_ktp !== undefined && { file_ktp }),
-          ...(status_akun !== undefined && { status_akun }),
+          ...(file_selfie_ktp !== undefined && { file_selfie_ktp }),
           ...(pekerjaan !== undefined && { pekerjaan }),
           diperbarui_pada: new Date(),
         },
