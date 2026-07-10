@@ -564,6 +564,4 @@ model kopdes_hub_sch_profil_koperasi {
   metode_pengisian      String?   @db.Text
   dibuat_pada           DateTime? @db.Timestamp(6)
   diperbarui_pada       DateTime? @db.Timestamp(6)
-
-  @@map("profil_koperasi")
 }
