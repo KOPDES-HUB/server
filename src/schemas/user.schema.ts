@@ -13,6 +13,14 @@ export const UserCreateSchema = z.object({
 
   username: z.string().min(1, "Nama lengkap wajib diisi").trim(),
   roles: z.array(z.string().uuid()).optional(),
+
+  noWA: z
+  .string()
+  .regex(/^62\d{8,13}$/, "Format no WA: 62xxxxxxxxxx")
+  .optional()
+  .nullable(),
+
+  refAnggota: z.string().optional().nullable(),
 });
 
 export const UserEditSchema = z.object({
@@ -27,4 +35,10 @@ export const UserEditSchema = z.object({
     .optional()
     .or(z.literal("")),
   roles: z.array(z.string().uuid()).optional(),
+  noWA: z
+  .string()
+  .regex(/^62\d{8,13}$/, "Format no WA: 62xxxxxxxxxx")
+  .optional()
+  .nullable(),
+  refAnggota: z.string().optional().nullable(),
 });

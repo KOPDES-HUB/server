@@ -77,6 +77,10 @@ model AuthUser {
   verificationCode String?   @map("verification_code") @db.Text
   totpSecret       String?   @map("totp_secret") @db.VarChar(16)
   ipAddress        String?   @map("ip_address") @db.Text
+  noWA        String?  @map("no_wa") @db.VarChar(20)
+  refAnggota  String?  @unique @map("ref_anggota")
+
+  anggota     kopdes_hub_sch_anggota_koperasi? @relation(fields: [refAnggota], references: [anggota_ref], onDelete: SetNull, onUpdate: Cascade)
 
   avatar String? @db.Text
 
@@ -426,6 +430,7 @@ model ApplicationInfoTeam {
   @@map("informasi_aplikasi_team")
 }
 
+// MODEL KOPERASI
 model kopdes_hub_sch_anggota_koperasi {
   anggota_ref                               String                                    @id @unique(map: "kopdes_hub_sch_anggota_koperasi_unique")
   koperasi_ref                              String
@@ -443,6 +448,7 @@ model kopdes_hub_sch_anggota_koperasi {
   kopdes_hub_sch_referensi_wilayah          kopdes_hub_sch_referensi_wilayah?         @relation(fields: [kode_wilayah], references: [kode_wilayah], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_kode_wilayah_96a41cef")
   kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_koperasi_ref_b8176ae0")
   kopdes_hub_sch_simpanan_anggota           kopdes_hub_sch_simpanan_anggota[]
+  authUser                                  AuthUser?                                
 }
 
 model kopdes_hub_sch_karyawan_koperasi {
