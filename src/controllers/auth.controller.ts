@@ -44,28 +44,20 @@ const AuthController = {
         },
       });
 
-      if(user?.statusRegistrasi=="DIAJUKAN"){
+      if (user?.statusRegistrasi == "DIAJUKAN") {
         return errorResponse(
-            res,
-            "Registrasi Anda masih menunggu persetujuan admin",
-            403
+          res,
+          "Registrasi Anda masih menunggu persetujuan admin",
+          403,
         );
       }
-      
-      if(user?.statusRegistrasi=="DITOLAK"){
-          return errorResponse(
-              res,
-              "Registrasi Anda ditolak",
-              403
-          );
+
+      if (user?.statusRegistrasi == "DITOLAK") {
+        return errorResponse(res, "Registrasi Anda ditolak", 403);
       }
-      
-      if(user?.statusRegistrasi=="DITANGGUHKAN"){
-          return errorResponse(
-              res,
-              "Akun Anda sedang dinonaktifkan",
-              403
-          );
+
+      if (user?.statusRegistrasi == "DITANGGUHKAN") {
+        return errorResponse(res, "Akun Anda sedang dinonaktifkan", 403);
       }
 
       if (!user) return errorResponse(res, "Username atau password salah", 401);
