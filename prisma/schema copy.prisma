@@ -7,220 +7,430 @@ datasource db {
   provider = "postgresql"
 }
 
-model activities {
-  id                                               String         @id
-  user_id                                          String
-  project_id                                       String?
-  assigned_by_id                                   String?
-  title                                            String         @db.VarChar(200)
-  description                                      String?
-  start_datetime                                   DateTime
-  end_datetime                                     DateTime
-  status                                           ActivityStatus @default(PENDING)
-  completed_at                                     DateTime?
-  created_at                                       DateTime?      @default(now())
-  updated_at                                       DateTime?
-  created_by                                       String?
-  updated_by                                       String?
-  auth_users_activities_assigned_by_idToauth_users auth_users?    @relation("activities_assigned_by_idToauth_users", fields: [assigned_by_id], references: [id])
-  projects                                         projects?      @relation(fields: [project_id], references: [id])
-  auth_users_activities_user_idToauth_users        auth_users     @relation("activities_user_idToauth_users", fields: [user_id], references: [id], onDelete: Cascade)
+// --- AUTHENTICATION & AUTHORIZATION MODELS ---
+model AuthGroup {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(100)
+  definition String?   @db.Text
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
 
-  @@index([assigned_by_id])
-  @@index([project_id])
-  @@index([user_id])
+  authPermToGroup AuthPermToGroup[]
+  authUserToGroup AuthUserToGroup[]
+
+  @@map("auth_groups")
 }
 
-model assignment_logs {
-  id            String            @id
-  assignment_id String
-  changed_by_id String
-  old_status    AssignmentStatus?
-  new_status    AssignmentStatus
-  note          String?
-  changed_at    DateTime          @default(now())
-  assignments   assignments       @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
-  auth_users    auth_users        @relation(fields: [changed_by_id], references: [id])
+model AuthLoginAttempt {
+  id            String    @id @default(uuid())
+  ipAddress     String    @map("ip_address") @db.VarChar(39)
+  timestamp     DateTime? @default(now())
+  loginAttempts Int?      @default(0) @map("login_attempts") @db.SmallInt
 
-  @@index([assignment_id])
+  @@map("auth_login_attempts")
 }
 
-model assignments {
-  id                                                String            @id
-  project_id                                        String
-  assigned_by_id                                    String
-  assigned_to_id                                    String
-  title                                             String            @db.VarChar(200)
-  description                                       String?
-  start_datetime                                    DateTime
-  end_datetime                                      DateTime
-  status                                            AssignmentStatus  @default(PENDING)
-  completed_at                                      DateTime?
-  deadline_email_sent                               Boolean           @default(false)
-  created_at                                        DateTime?         @default(now())
-  updated_at                                        DateTime?
-  created_by                                        String?
-  updated_by                                        String?
-  assignment_logs                                   assignment_logs[]
-  auth_users_assignments_assigned_by_idToauth_users auth_users        @relation("assignments_assigned_by_idToauth_users", fields: [assigned_by_id], references: [id])
-  auth_users_assignments_assigned_to_idToauth_users auth_users        @relation("assignments_assigned_to_idToauth_users", fields: [assigned_to_id], references: [id])
-  projects                                          projects          @relation(fields: [project_id], references: [id])
+model AuthPerm {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(100)
+  definition String?   @db.VarChar(200)
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
 
-  @@index([assigned_by_id])
-  @@index([assigned_to_id])
-  @@index([project_id])
+  authPermToGroup AuthPermToGroup[]
+  menus           Menu[]
+
+  @@map("auth_perms")
 }
 
-model auth_groups {
-  id                 String               @id
-  name               String               @db.VarChar(100)
-  definition         String?
-  created_at         DateTime?            @default(now())
-  updated_at         DateTime?
-  created_by         String?
-  updated_by         String?
-  auth_perm_to_group auth_perm_to_group[]
-  auth_user_to_group auth_user_to_group[]
+model AuthUserToGroup {
+  userId  String @map("user_id")
+  groupId String @map("group_id")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  group AuthGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+  @@map("auth_user_to_group")
 }
 
-model auth_login_attempts {
-  id             String    @id
-  ip_address     String    @db.VarChar(39)
-  timestamp      DateTime? @default(now())
-  login_attempts Int?      @default(0) @db.SmallInt
+model AuthUser {
+  id               String    @id @default(uuid())
+  email            String    @unique @db.VarChar(100)
+  password         String?   @db.VarChar(255)
+  username         String    @db.VarChar(100)
+  banned           Boolean   @default(false)
+  lastLogin        DateTime? @map("last_login")
+  lastActivity     DateTime? @map("last_activity")
+  forgotExp        String?   @map("forgot_exp") @db.Text
+  rememberTime     DateTime? @map("remember_time")
+  rememberExp      String?   @map("remember_exp") @db.Text
+  verificationCode String?   @map("verification_code") @db.Text
+  totpSecret       String?   @map("totp_secret") @db.VarChar(16)
+  ipAddress        String?   @map("ip_address") @db.Text
+  noWA        String?  @map("no_wa") @db.VarChar(20)
+  refAnggota  String?  @unique @map("ref_anggota")
+
+  anggota     kopdes_hub_sch_anggota_koperasi? @relation(fields: [refAnggota], references: [anggota_ref], onDelete: SetNull, onUpdate: Cascade)
+
+  avatar String? @db.Text
+
+  telegramChatId   String?   @map("telegram_chat_id") @db.VarChar(100)
+  telegramUsername String?   @map("telegram_username") @db.VarChar(100)
+  notifyEmail      Boolean   @default(true) @map("notify_email")
+  notifyTelegram   Boolean   @default(false) @map("notify_telegram")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  authUserTokens  AuthUserToken[]
+  authUserToGroup AuthUserToGroup[]
+
+  assignmentsGiven     Assignment[]    @relation("AssignmentGiver")
+  assignmentsReceived  Assignment[]    @relation("AssignmentReceiver")
+  assignmentLogs       AssignmentLog[]
+  activities           Activity[]      @relation("ActivityUser")
+  activitiesGiven      Activity[]      @relation("ActivityGiver")
+  notifications        Notification[]
+  leaveRequests        LeaveRequest[]  @relation("LeaveRequestUser")
+  leaveRequestsManaged LeaveRequest[]  @relation("LeaveRequestManager")
+  leaveRequestsFinance LeaveRequest[]  @relation("LeaveRequestFinance")
+  applicationTeams     ApplicationInfoTeam[]
+  projectsOwned        Project[]       @relation("ProjectOwner")
+
+  @@map("auth_users")
 }
 
-model auth_perm_to_group {
-  perm_id     String
-  group_id    String
-  can_create  Int?        @default(0) @db.SmallInt
-  can_read    Int?        @default(0) @db.SmallInt
-  can_update  Int?        @default(0) @db.SmallInt
-  can_delete  Int?        @default(0) @db.SmallInt
-  created_by  String?
-  created_at  DateTime?   @default(now())
-  updated_by  String?
-  updated_at  DateTime?
-  auth_groups auth_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
-  auth_perms  auth_perms  @relation(fields: [perm_id], references: [id], onDelete: Cascade)
+model AuthPermToGroup {
+  permId    String @map("perm_id")
+  groupId   String @map("group_id")
+  canCreate Int?   @default(0) @map("can_create") @db.SmallInt
+  canRead   Int?   @default(0) @map("can_read") @db.SmallInt
+  canUpdate Int?   @default(0) @map("can_update") @db.SmallInt
+  canDelete Int?   @default(0) @map("can_delete") @db.SmallInt
 
-  @@id([perm_id, group_id])
-  @@index([group_id])
+  createdBy String?   @map("created_by")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedBy String?   @map("updated_by")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  group      AuthGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  permission AuthPerm  @relation(fields: [permId], references: [id], onDelete: Cascade)
+
+  @@id([permId, groupId])
+  @@index([groupId])
+  @@map("auth_perm_to_group")
 }
 
-model auth_perms {
-  id                 String               @id
-  name               String               @db.VarChar(100)
-  definition         String?              @db.VarChar(200)
-  created_at         DateTime?            @default(now())
-  updated_at         DateTime?
-  created_by         String?
-  updated_by         String?
-  auth_perm_to_group auth_perm_to_group[]
-  menus              menus[]
+model Menu {
+  id       String @id @default(uuid())
+  name     String @db.VarChar(50)
+  url      String @db.VarChar(250)
+  icon     String @db.VarChar(100)
+  sequence Int
+
+  parentId String? @map("parent_id")
+  parent   Menu?   @relation("MenuToMenu", fields: [parentId], references: [id])
+  children Menu[]  @relation("MenuToMenu")
+
+  module String @db.VarChar(20)
+  type   String @db.VarChar(20)
+
+  permId     String   @map("perm_id")
+  permission AuthPerm @relation(fields: [permId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  createdBy String?   @map("created_by")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@index([permId])
+  @@map("menus")
 }
 
-model auth_user_to_group {
-  user_id     String
-  group_id    String
-  created_at  DateTime?   @default(now())
-  updated_at  DateTime?
-  created_by  String?
-  updated_by  String?
-  auth_groups auth_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
-  auth_users  auth_users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+model AuthUserToken {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  refreshToken String    @map("refresh_token") @db.Text
+  deviceInfo   String?   @map("device_info") @db.Text
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime? @default(now()) @map("created_at")
 
-  @@id([user_id, group_id])
+  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_user_tokens")
 }
 
-model auth_user_tokens {
-  id            String     @id
-  user_id       String
-  refresh_token String
-  device_info   String?
-  expires_at    DateTime
-  created_at    DateTime?  @default(now())
-  auth_users    auth_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+// --- OTHER MODELS ---
 
-  @@index([user_id])
+model SystemAuditLog {
+  id        String  @id @default(uuid())
+  action    String
+  actorId   String  @map("actor_id")
+  details   Json?
+  ipAddress String? @map("ip_address")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("system_audit_log")
 }
 
-model auth_users {
-  id                                                   String                    @id
-  email                                                String                    @unique @db.VarChar(100)
-  password                                             String?                   @db.VarChar(255)
-  username                                             String                    @db.VarChar(100)
-  banned                                               Boolean                   @default(false)
-  last_login                                           DateTime?
-  last_activity                                        DateTime?
-  forgot_exp                                           String?
-  remember_time                                        DateTime?
-  remember_exp                                         String?
-  verification_code                                    String?
-  totp_secret                                          String?                   @db.VarChar(16)
-  ip_address                                           String?
-  avatar                                               String?
-  telegram_chat_id                                     String?                   @db.VarChar(100)
-  telegram_username                                    String?                   @db.VarChar(100)
-  notify_email                                         Boolean                   @default(true)
-  notify_telegram                                      Boolean                   @default(false)
-  created_at                                           DateTime?                 @default(now())
-  updated_at                                           DateTime?
-  activities_activities_assigned_by_idToauth_users     activities[]              @relation("activities_assigned_by_idToauth_users")
-  activities_activities_user_idToauth_users            activities[]              @relation("activities_user_idToauth_users")
-  assignment_logs                                      assignment_logs[]
-  assignments_assignments_assigned_by_idToauth_users   assignments[]             @relation("assignments_assigned_by_idToauth_users")
-  assignments_assignments_assigned_to_idToauth_users   assignments[]             @relation("assignments_assigned_to_idToauth_users")
-  auth_user_to_group                                   auth_user_to_group[]
-  auth_user_tokens                                     auth_user_tokens[]
-  informasi_aplikasi_team                              informasi_aplikasi_team[]
-  leave_requests_leave_requests_finance_idToauth_users leave_requests[]          @relation("leave_requests_finance_idToauth_users")
-  leave_requests_leave_requests_manager_idToauth_users leave_requests[]          @relation("leave_requests_manager_idToauth_users")
-  leave_requests_leave_requests_user_idToauth_users    leave_requests[]          @relation("leave_requests_user_idToauth_users")
-  notifications                                        notifications[]
-  projects                                             projects[]
+// --- MASTER PROYEK ---
+model Project {
+  id             String          @id @default(uuid())
+  code           String          @unique @db.VarChar(20) // BIT-001
+  name           String          @db.VarChar(200)
+  description    String?         @db.Text
+  status         ProjectStatus   @default(ACTIVE)
+  contractStatus ContractStatus  @default(POTENTIAL) @map("contract_status")
+  category       ProjectCategory @default(PROJECT)
+  year           Int?
+  contractValue  Float?          @map("contract_value")
+  contractStart  DateTime?       @map("contract_start")
+  contractEnd    DateTime?       @map("contract_end")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by") // FK ke AuthUser.id (loose)
+  updatedBy String?   @map("updated_by")
+
+  ownerId   String?   @map("owner_id")
+  owner     AuthUser? @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  assignments Assignment[]
+  activities  Activity[]
+
+  @@map("projects")
 }
 
-model informasi_aplikasi {
-  id                       String                     @id
-  id_instansi              Int?
-  nama_instansi            String?                    @db.VarChar(255)
-  nama_proyek              String?                    @db.VarChar(255)
-  tahun_proyek             Int?
-  pic_client               String?                    @db.VarChar(255)
-  pic_no                   String?                    @db.VarChar(15)
-  informasi_teknis_dev     String?
-  informasi_teknis_prod    String?
-  created_at               DateTime?                  @default(now())
-  created_by               String?                    @db.VarChar(200)
-  updated_at               DateTime?
-  updated_by               String?                    @db.VarChar(200)
-  informasi_aplikasi_files informasi_aplikasi_files[]
-  informasi_aplikasi_team  informasi_aplikasi_team[]
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
 }
 
-model informasi_aplikasi_files {
-  id                    String              @id
-  id_informasi_aplikasi String?
-  nama_file             String?             @db.VarChar(255)
-  path_file             String?             @db.VarChar(255)
-  extension             String?             @db.VarChar(10)
-  client_name           String?             @db.VarChar(255)
-  file_size             Float?
-  informasi_aplikasi    informasi_aplikasi? @relation(fields: [id_informasi_aplikasi], references: [id], onDelete: Cascade)
+enum ContractStatus {
+  POTENTIAL
+  NOT_CONTRACTED
+  CONTRACTED
 }
 
-model informasi_aplikasi_team {
-  id                    String              @id
-  id_informasi_aplikasi String?
-  user_id               String?
-  id_user_group         Int?
-  nama_team             String?             @db.VarChar(255)
-  nama_usr_group        String?             @db.VarChar(255)
-  informasi_aplikasi    informasi_aplikasi? @relation(fields: [id_informasi_aplikasi], references: [id], onDelete: Cascade)
-  auth_users            auth_users?         @relation(fields: [user_id], references: [id])
+enum ProjectCategory {
+  PROJECT
+  PRODUCT
+  OTHERS
 }
 
+// --- PENUGASAN ---
+model Assignment {
+  id           String @id @default(uuid())
+  projectId    String @map("project_id")
+  assignedById String @map("assigned_by_id")
+  assignedToId String @map("assigned_to_id")
+
+  title         String   @db.VarChar(200)
+  description   String?  @db.Text
+  startDatetime DateTime @map("start_datetime")
+  endDatetime   DateTime @map("end_datetime") // deadline
+
+  status      AssignmentStatus @default(PENDING)
+  completedAt DateTime?        @map("completed_at") // kapan di-mark selesai
+  deadlineEmailSent Boolean @default(false) @map("deadline_email_sent")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  project    Project  @relation(fields: [projectId], references: [id])
+  assignedBy AuthUser @relation("AssignmentGiver", fields: [assignedById], references: [id])
+  assignedTo AuthUser @relation("AssignmentReceiver", fields: [assignedToId], references: [id])
+
+  logs AssignmentLog[]
+
+  @@index([projectId])
+  @@index([assignedToId])
+  @@index([assignedById])
+  @@map("assignments")
+}
+
+enum AssignmentStatus {
+  PENDING // Belum dilaksanakan
+  PENDING_STATUS // Pending / Ditunda
+  IN_PROGRESS // Sedang dilaksanakan
+  COMPLETED // Selesai
+  COMPLETED_LATE // Selesai terlambat
+  LATE_WITH_REASON // Terlambat dengan alasan
+}
+
+// --- LOG / AUDIT TRAIL ---
+model AssignmentLog {
+  id           String @id @default(uuid())
+  assignmentId String @map("assignment_id")
+  changedById  String @map("changed_by_id")
+
+  oldStatus AssignmentStatus? @map("old_status")
+  newStatus AssignmentStatus  @map("new_status")
+  note      String?           @db.Text
+
+  changedAt DateTime @default(now()) @map("changed_at")
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  changedBy  AuthUser   @relation(fields: [changedById], references: [id])
+
+  @@index([assignmentId])
+  @@map("assignment_logs")
+}
+
+// --- NOTIFIKASI ---
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String   @db.VarChar(100)
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+// --- AKTIVITAS ---
+model Activity {
+  id           String  @id @default(uuid())
+  userId       String  @map("user_id")
+  projectId    String? @map("project_id")
+  assignedById String? @map("assigned_by_id")
+
+  title         String   @db.VarChar(200)
+  description   String?  @db.Text
+  startDatetime DateTime @map("start_datetime")
+  endDatetime   DateTime @map("end_datetime")
+
+  status      ActivityStatus @default(PENDING)
+  completedAt DateTime?      @map("completed_at")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  user       AuthUser  @relation("ActivityUser", fields: [userId], references: [id], onDelete: Cascade)
+  project    Project?  @relation(fields: [projectId], references: [id])
+  assignedBy AuthUser? @relation("ActivityGiver", fields: [assignedById], references: [id])
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([assignedById])
+  @@map("activities")
+}
+
+enum ActivityStatus {
+  PENDING
+  PENDING_STATUS
+  IN_PROGRESS
+  COMPLETED
+  COMPLETED_LATE
+  LATE_WITH_REASON
+}
+
+model LeaveRequest {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  managerId String @map("manager_id")
+  financeId String @map("finance_id")
+
+  startDate DateTime    @map("start_date")
+  endDate   DateTime    @map("end_date")
+  reason    String      @db.Text
+  status    LeaveStatus @default(PENDING)
+  managerStatus LeaveStatus @default(PENDING) @map("manager_status")
+  financeStatus LeaveStatus @default(PENDING) @map("finance_status")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  user    AuthUser @relation("LeaveRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  manager AuthUser @relation("LeaveRequestManager", fields: [managerId], references: [id])
+  finance AuthUser @relation("LeaveRequestFinance", fields: [financeId], references: [id])
+
+  @@index([userId])
+  @@index([managerId])
+  @@index([financeId])
+  @@map("leave_requests")
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// --- INFORMASI APLIKASI ---
+model ApplicationInfo {
+  id                  String    @id @default(uuid())
+  idInstansi          Int?      @map("id_instansi")
+  namaInstansi        String?   @map("nama_instansi") @db.VarChar(255)
+  namaProyek          String?   @map("nama_proyek") @db.VarChar(255)
+  tahunProyek         Int?      @map("tahun_proyek")
+  picClient           String?   @map("pic_client") @db.VarChar(255)
+  picNo               String?   @map("pic_no") @db.VarChar(15)
+  informasiTeknisDev  String?   @map("informasi_teknis_dev") @db.Text
+  informasiTeknisProd String?   @map("informasi_teknis_prod") @db.Text
+  createdAt           DateTime? @default(now()) @map("created_at")
+  createdBy           String?   @map("created_by") @db.VarChar(200)
+  updatedAt           DateTime? @updatedAt @map("updated_at")
+  updatedBy           String?   @map("updated_by") @db.VarChar(200)
+
+  files               ApplicationInfoFile[]
+  teamMembers         ApplicationInfoTeam[]
+
+  @@map("informasi_aplikasi")
+}
+
+model ApplicationInfoFile {
+  id                  String   @id @default(uuid())
+  idInformasiAplikasi String?  @map("id_informasi_aplikasi")
+  namaFile            String?  @map("nama_file") @db.VarChar(255)
+  pathFile            String?  @map("path_file") @db.VarChar(255)
+  extension           String?  @map("extension") @db.VarChar(10)
+  clientName          String?  @map("client_name") @db.VarChar(255)
+  fileSize            Float?   @map("file_size")
+
+  applicationInfo     ApplicationInfo? @relation(fields: [idInformasiAplikasi], references: [id], onDelete: Cascade)
+
+  @@map("informasi_aplikasi_files")
+}
+
+model ApplicationInfoTeam {
+  id                  String   @id @default(uuid())
+  idInformasiAplikasi String?  @map("id_informasi_aplikasi")
+  
+  userId              String?  @map("user_id")
+  user                AuthUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  idUserGroup         Int?     @map("id_user_group")
+  namaTeam            String?  @map("nama_team") @db.VarChar(255)
+  namaUsrGroup        String?  @map("nama_usr_group") @db.VarChar(255)
+
+  applicationInfo     ApplicationInfo? @relation(fields: [idInformasiAplikasi], references: [id], onDelete: Cascade)
+
+  @@map("informasi_aplikasi_team")
+}
+
+// MODEL KOPERASI
 model kopdes_hub_sch_anggota_koperasi {
   anggota_ref                               String                                    @id @unique(map: "kopdes_hub_sch_anggota_koperasi_unique")
   koperasi_ref                              String
@@ -238,6 +448,7 @@ model kopdes_hub_sch_anggota_koperasi {
   kopdes_hub_sch_referensi_wilayah          kopdes_hub_sch_referensi_wilayah?         @relation(fields: [kode_wilayah], references: [kode_wilayah], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_kode_wilayah_96a41cef")
   kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_koperasi_ref_b8176ae0")
   kopdes_hub_sch_simpanan_anggota           kopdes_hub_sch_simpanan_anggota[]
+  authUser                                  AuthUser?                                
 }
 
 model kopdes_hub_sch_karyawan_koperasi {
@@ -336,130 +547,23 @@ model kopdes_hub_sch_simpanan_anggota {
   kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_simpanan_anggota_koperasi_ref_c7fd2f70")
 }
 
-model leave_requests {
-  id                                               String      @id
-  user_id                                          String
-  manager_id                                       String
-  finance_id                                       String
-  start_date                                       DateTime
-  end_date                                         DateTime
-  reason                                           String
-  status                                           LeaveStatus @default(PENDING)
-  manager_status                                   LeaveStatus @default(PENDING)
-  finance_status                                   LeaveStatus @default(PENDING)
-  created_at                                       DateTime?   @default(now())
-  updated_at                                       DateTime?
-  auth_users_leave_requests_finance_idToauth_users auth_users  @relation("leave_requests_finance_idToauth_users", fields: [finance_id], references: [id])
-  auth_users_leave_requests_manager_idToauth_users auth_users  @relation("leave_requests_manager_idToauth_users", fields: [manager_id], references: [id])
-  auth_users_leave_requests_user_idToauth_users    auth_users  @relation("leave_requests_user_idToauth_users", fields: [user_id], references: [id], onDelete: Cascade)
+model kopdes_hub_sch_profil_koperasi {
+  koperasi_ref          String    @unique(map: "kopdes_hub_sch_profil_koperasi_pk")
+  nama_koperasi         String?   @db.Text
+  status_registrasi     String?   @db.Text
+  bentuk_koperasi       String?   @db.Text
+  kategori_usaha        String?   @db.Text
+  nik_koperasi          String?   @db.Text
+  alamat_lengkap        String?   @db.Text
+  kode_pos              String?   @db.Text
+  koordinat_dibulatkan  String?   @db.Text
+  modal_awal            String?   @db.Text
+  sumber_persetujuan    String?   @db.Text
+  tentang_koperasi      String?   @db.Text
+  pola_pengelolaan      String?   @db.Text
+  metode_pengisian      String?   @db.Text
+  dibuat_pada           DateTime? @db.Timestamp(6)
+  diperbarui_pada       DateTime? @db.Timestamp(6)
 
-  @@index([finance_id])
-  @@index([manager_id])
-  @@index([user_id])
-}
-
-model menus {
-  id          String     @id
-  name        String     @db.VarChar(50)
-  url         String     @db.VarChar(250)
-  icon        String     @db.VarChar(100)
-  sequence    Int
-  parent_id   String?
-  module      String     @db.VarChar(20)
-  type        String     @db.VarChar(20)
-  perm_id     String
-  created_at  DateTime?  @default(now())
-  created_by  String?
-  updated_at  DateTime?
-  menus       menus?     @relation("menusTomenus", fields: [parent_id], references: [id])
-  other_menus menus[]    @relation("menusTomenus")
-  auth_perms  auth_perms @relation(fields: [perm_id], references: [id], onDelete: Cascade)
-
-  @@index([perm_id])
-}
-
-model notifications {
-  id         String     @id
-  user_id    String
-  title      String     @db.VarChar(100)
-  message    String
-  is_read    Boolean    @default(false)
-  link       String?    @db.VarChar(255)
-  created_at DateTime   @default(now())
-  auth_users auth_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id])
-}
-
-model projects {
-  id              String          @id
-  code            String          @unique @db.VarChar(20)
-  name            String          @db.VarChar(200)
-  description     String?
-  status          ProjectStatus   @default(ACTIVE)
-  contract_status ContractStatus  @default(POTENTIAL)
-  category        ProjectCategory @default(PROJECT)
-  year            Int?
-  contract_value  Float?
-  contract_start  DateTime?
-  contract_end    DateTime?
-  created_at      DateTime?       @default(now())
-  updated_at      DateTime?
-  created_by      String?
-  updated_by      String?
-  owner_id        String?
-  activities      activities[]
-  assignments     assignments[]
-  auth_users      auth_users?     @relation(fields: [owner_id], references: [id])
-}
-
-model system_audit_log {
-  id         String   @id
-  action     String
-  actor_id   String
-  details    Json?
-  ip_address String?
-  created_at DateTime @default(now())
-}
-
-enum ActivityStatus {
-  PENDING
-  PENDING_STATUS
-  IN_PROGRESS
-  COMPLETED
-  COMPLETED_LATE
-  LATE_WITH_REASON
-}
-
-enum AssignmentStatus {
-  PENDING
-  PENDING_STATUS
-  IN_PROGRESS
-  COMPLETED
-  COMPLETED_LATE
-  LATE_WITH_REASON
-}
-
-enum ContractStatus {
-  POTENTIAL
-  NOT_CONTRACTED
-  CONTRACTED
-}
-
-enum LeaveStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum ProjectCategory {
-  PROJECT
-  PRODUCT
-  OTHERS
-}
-
-enum ProjectStatus {
-  ACTIVE
-  COMPLETED
-  ON_HOLD
+  @@map("profil_koperasi")
 }
