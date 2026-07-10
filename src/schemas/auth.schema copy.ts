@@ -1,24 +1,14 @@
 import z from "zod";
 
-// export const LoginSchema = z.object({
-//   email: z
-//     .string()
-//     .min(1, "Email atau NIK wajib diisi")
-//     .email("Format email tidak valid"),
 
-//   password: z.string().min(1, "Password wajib diisi"),
-// });
+export const LoginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email wajib diisi")
+    .email("Format email tidak valid"),
 
-export const LoginSchema = z
-  .object({
-    email: z.string().trim().optional(),
-    nik: z.string().trim().optional(),
-    password: z.string().min(1, "Password wajib diisi"),
-  })
-  .refine((data) => Boolean(data.email || data.nik), {
-    message: "Email atau NIK wajib diisi",
-    path: ["email"],
-  });
+  password: z.string().min(1, "Password wajib diisi"),
+});
 
 export const ChangePasswordSchema = z
   .object({
@@ -41,3 +31,4 @@ export const UpdateProfileSchema = z.object({
     .email("Format email tidak valid"),
   removeAvatar: z.enum(["true", "false"]).optional(),
 });
+

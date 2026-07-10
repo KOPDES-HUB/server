@@ -17,28 +17,18 @@ import crypto from "crypto";
 const AuthController = {
   login: async (req: Request, res: Response) => {
     try {
-      console.log("test");
       const parsed = LoginSchema.safeParse(req.body);
       if (!parsed.success) {
         return errorResponse(res, "Input tidak valid", 400, parsed.error);
       }
 
-      const { email, nik, password } = parsed.data;
-      const identifier = email || nik;
+      const { email, password } = parsed.data;
 
-      if (!identifier) {
-        return errorResponse(res, "Email atau NIK wajib diisi", 400);
-      }
-
-      // Deteksi apakah identifier itu email atau NIK
-      const isEmail = identifier.includes("@");
-
-      const user = await prisma.authUser.findFirst({
-        where: isEmail ? { email: identifier } : { nik: identifier },
+      const user = await prisma.authUser.findUnique({
+        where: { email },
         select: {
           id: true,
           email: true,
-          nik: true,
           password: true,
           banned: true,
         },
@@ -116,7 +106,6 @@ const AuthController = {
         },
       });
     } catch (error) {
-      console.error("LOGIN ERROR:", error);
       return errorResponse(res, "Terjadi kesalahan pada server", 500);
     }
   },
