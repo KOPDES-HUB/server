@@ -1,0 +1,465 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model activities {
+  id                                               String         @id
+  user_id                                          String
+  project_id                                       String?
+  assigned_by_id                                   String?
+  title                                            String         @db.VarChar(200)
+  description                                      String?
+  start_datetime                                   DateTime
+  end_datetime                                     DateTime
+  status                                           ActivityStatus @default(PENDING)
+  completed_at                                     DateTime?
+  created_at                                       DateTime?      @default(now())
+  updated_at                                       DateTime?
+  created_by                                       String?
+  updated_by                                       String?
+  auth_users_activities_assigned_by_idToauth_users auth_users?    @relation("activities_assigned_by_idToauth_users", fields: [assigned_by_id], references: [id])
+  projects                                         projects?      @relation(fields: [project_id], references: [id])
+  auth_users_activities_user_idToauth_users        auth_users     @relation("activities_user_idToauth_users", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([assigned_by_id])
+  @@index([project_id])
+  @@index([user_id])
+}
+
+model assignment_logs {
+  id            String            @id
+  assignment_id String
+  changed_by_id String
+  old_status    AssignmentStatus?
+  new_status    AssignmentStatus
+  note          String?
+  changed_at    DateTime          @default(now())
+  assignments   assignments       @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  auth_users    auth_users        @relation(fields: [changed_by_id], references: [id])
+
+  @@index([assignment_id])
+}
+
+model assignments {
+  id                                                String            @id
+  project_id                                        String
+  assigned_by_id                                    String
+  assigned_to_id                                    String
+  title                                             String            @db.VarChar(200)
+  description                                       String?
+  start_datetime                                    DateTime
+  end_datetime                                      DateTime
+  status                                            AssignmentStatus  @default(PENDING)
+  completed_at                                      DateTime?
+  deadline_email_sent                               Boolean           @default(false)
+  created_at                                        DateTime?         @default(now())
+  updated_at                                        DateTime?
+  created_by                                        String?
+  updated_by                                        String?
+  assignment_logs                                   assignment_logs[]
+  auth_users_assignments_assigned_by_idToauth_users auth_users        @relation("assignments_assigned_by_idToauth_users", fields: [assigned_by_id], references: [id])
+  auth_users_assignments_assigned_to_idToauth_users auth_users        @relation("assignments_assigned_to_idToauth_users", fields: [assigned_to_id], references: [id])
+  projects                                          projects          @relation(fields: [project_id], references: [id])
+
+  @@index([assigned_by_id])
+  @@index([assigned_to_id])
+  @@index([project_id])
+}
+
+model auth_groups {
+  id                 String               @id
+  name               String               @db.VarChar(100)
+  definition         String?
+  created_at         DateTime?            @default(now())
+  updated_at         DateTime?
+  created_by         String?
+  updated_by         String?
+  auth_perm_to_group auth_perm_to_group[]
+  auth_user_to_group auth_user_to_group[]
+}
+
+model auth_login_attempts {
+  id             String    @id
+  ip_address     String    @db.VarChar(39)
+  timestamp      DateTime? @default(now())
+  login_attempts Int?      @default(0) @db.SmallInt
+}
+
+model auth_perm_to_group {
+  perm_id     String
+  group_id    String
+  can_create  Int?        @default(0) @db.SmallInt
+  can_read    Int?        @default(0) @db.SmallInt
+  can_update  Int?        @default(0) @db.SmallInt
+  can_delete  Int?        @default(0) @db.SmallInt
+  created_by  String?
+  created_at  DateTime?   @default(now())
+  updated_by  String?
+  updated_at  DateTime?
+  auth_groups auth_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  auth_perms  auth_perms  @relation(fields: [perm_id], references: [id], onDelete: Cascade)
+
+  @@id([perm_id, group_id])
+  @@index([group_id])
+}
+
+model auth_perms {
+  id                 String               @id
+  name               String               @db.VarChar(100)
+  definition         String?              @db.VarChar(200)
+  created_at         DateTime?            @default(now())
+  updated_at         DateTime?
+  created_by         String?
+  updated_by         String?
+  auth_perm_to_group auth_perm_to_group[]
+  menus              menus[]
+}
+
+model auth_user_to_group {
+  user_id     String
+  group_id    String
+  created_at  DateTime?   @default(now())
+  updated_at  DateTime?
+  created_by  String?
+  updated_by  String?
+  auth_groups auth_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  auth_users  auth_users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, group_id])
+}
+
+model auth_user_tokens {
+  id            String     @id
+  user_id       String
+  refresh_token String
+  device_info   String?
+  expires_at    DateTime
+  created_at    DateTime?  @default(now())
+  auth_users    auth_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model auth_users {
+  id                                                   String                    @id
+  email                                                String                    @unique @db.VarChar(100)
+  password                                             String?                   @db.VarChar(255)
+  username                                             String                    @db.VarChar(100)
+  banned                                               Boolean                   @default(false)
+  last_login                                           DateTime?
+  last_activity                                        DateTime?
+  forgot_exp                                           String?
+  remember_time                                        DateTime?
+  remember_exp                                         String?
+  verification_code                                    String?
+  totp_secret                                          String?                   @db.VarChar(16)
+  ip_address                                           String?
+  avatar                                               String?
+  telegram_chat_id                                     String?                   @db.VarChar(100)
+  telegram_username                                    String?                   @db.VarChar(100)
+  notify_email                                         Boolean                   @default(true)
+  notify_telegram                                      Boolean                   @default(false)
+  created_at                                           DateTime?                 @default(now())
+  updated_at                                           DateTime?
+  activities_activities_assigned_by_idToauth_users     activities[]              @relation("activities_assigned_by_idToauth_users")
+  activities_activities_user_idToauth_users            activities[]              @relation("activities_user_idToauth_users")
+  assignment_logs                                      assignment_logs[]
+  assignments_assignments_assigned_by_idToauth_users   assignments[]             @relation("assignments_assigned_by_idToauth_users")
+  assignments_assignments_assigned_to_idToauth_users   assignments[]             @relation("assignments_assigned_to_idToauth_users")
+  auth_user_to_group                                   auth_user_to_group[]
+  auth_user_tokens                                     auth_user_tokens[]
+  informasi_aplikasi_team                              informasi_aplikasi_team[]
+  leave_requests_leave_requests_finance_idToauth_users leave_requests[]          @relation("leave_requests_finance_idToauth_users")
+  leave_requests_leave_requests_manager_idToauth_users leave_requests[]          @relation("leave_requests_manager_idToauth_users")
+  leave_requests_leave_requests_user_idToauth_users    leave_requests[]          @relation("leave_requests_user_idToauth_users")
+  notifications                                        notifications[]
+  projects                                             projects[]
+}
+
+model informasi_aplikasi {
+  id                       String                     @id
+  id_instansi              Int?
+  nama_instansi            String?                    @db.VarChar(255)
+  nama_proyek              String?                    @db.VarChar(255)
+  tahun_proyek             Int?
+  pic_client               String?                    @db.VarChar(255)
+  pic_no                   String?                    @db.VarChar(15)
+  informasi_teknis_dev     String?
+  informasi_teknis_prod    String?
+  created_at               DateTime?                  @default(now())
+  created_by               String?                    @db.VarChar(200)
+  updated_at               DateTime?
+  updated_by               String?                    @db.VarChar(200)
+  informasi_aplikasi_files informasi_aplikasi_files[]
+  informasi_aplikasi_team  informasi_aplikasi_team[]
+}
+
+model informasi_aplikasi_files {
+  id                    String              @id
+  id_informasi_aplikasi String?
+  nama_file             String?             @db.VarChar(255)
+  path_file             String?             @db.VarChar(255)
+  extension             String?             @db.VarChar(10)
+  client_name           String?             @db.VarChar(255)
+  file_size             Float?
+  informasi_aplikasi    informasi_aplikasi? @relation(fields: [id_informasi_aplikasi], references: [id], onDelete: Cascade)
+}
+
+model informasi_aplikasi_team {
+  id                    String              @id
+  id_informasi_aplikasi String?
+  user_id               String?
+  id_user_group         Int?
+  nama_team             String?             @db.VarChar(255)
+  nama_usr_group        String?             @db.VarChar(255)
+  informasi_aplikasi    informasi_aplikasi? @relation(fields: [id_informasi_aplikasi], references: [id], onDelete: Cascade)
+  auth_users            auth_users?         @relation(fields: [user_id], references: [id])
+}
+
+model kopdes_hub_sch_anggota_koperasi {
+  anggota_ref                               String                                    @id @unique(map: "kopdes_hub_sch_anggota_koperasi_unique")
+  koperasi_ref                              String
+  nama                                      String?
+  nik                                       String?
+  kode_wilayah                              String?
+  jenis_kelamin                             String?
+  status_keanggotaan                        String?
+  tanggal_terdaftar                         DateTime?                                 @db.Date
+  dibuat_pada                               DateTime?                                 @db.Timestamp(6)
+  diperbarui_pada                           DateTime?                                 @db.Timestamp(6)
+  file_ktp                                  String?
+  status_akun                               String?
+  pekerjaan                                 String?
+  kopdes_hub_sch_referensi_wilayah          kopdes_hub_sch_referensi_wilayah?         @relation(fields: [kode_wilayah], references: [kode_wilayah], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_kode_wilayah_96a41cef")
+  kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_anggota_koperasi_koperasi_ref_b8176ae0")
+  kopdes_hub_sch_simpanan_anggota           kopdes_hub_sch_simpanan_anggota[]
+}
+
+model kopdes_hub_sch_karyawan_koperasi {
+  karyawan_ref                              String                                    @id(map: "kopdes_hub_sch_karyawan_koperasi_pk")
+  koperasi_ref                              String
+  nama                                      String?
+  jabatan                                   String?
+  nomor_hp_karyawan                         String?
+  jenis_kelamin                             String?
+  nik                                       String?
+  email                                     String?
+  status_karyawan                           String?
+  dibuat_pada                               DateTime?                                 @db.Timestamp(6)
+  diperbarui_pada                           DateTime?                                 @db.Timestamp(6)
+  kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_karyawan_koperasi_koperasi_ref_4e47588f")
+}
+
+model kopdes_hub_sch_pengurus_koperasi {
+  pengurus_ref                              String                                    @id(map: "kopdes_hub_sch_pengurus_koperasi_pk")
+  koperasi_ref                              String
+  nama                                      String?
+  jabatan                                   String?
+  status                                    String?
+  no_hp                                     String?
+  nik                                       String?
+  jenis_kelamin                             String?
+  foto_profil                               String?
+  email                                     String?
+  alamat                                    String?
+  kode_pos                                  String?
+  tanggal_lahir                             String?
+  status_pendidikan                         String?
+  periode_mulai                             String?
+  periode_selesai                           DateTime?                                 @db.Date
+  file_ktp                                  String?
+  sumber_data                               String?
+  dibuat_pada                               DateTime?                                 @db.Timestamp(6)
+  diperbarui_pada                           DateTime?                                 @db.Timestamp(6)
+  kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_pengurus_koperasi_koperasi_ref_762eb9ec")
+}
+
+model kopdes_hub_sch_rat_koperasi {
+  rat_sample_id                             String                                    @id(map: "kopdes_hub_sch_rat_koperasi_pk")
+  koperasi_ref                              String
+  jenis_sektor_koperasi                     String?
+  urutan_rat                                String?
+  tahun_buku                                Int?                                      @db.SmallInt
+  tahun_rencana_kerja                       Int?                                      @db.SmallInt
+  tahun_rencana_anggaran                    Int?                                      @db.SmallInt
+  tanggal_rat                               DateTime?                                 @db.Date
+  jumlah_peserta_rat                        Int?
+  status_rat                                String?
+  tahap_rat                                 String?
+  laporan_posisi_keuangan                   String?
+  laporan_hasil_usaha                       String?
+  rapb_posisi_keuangan                      String?
+  rapb_hasil_usaha                          String?
+  dibuat_pada                               DateTime?                                 @db.Timestamp(6)
+  diperbarui_pada                           DateTime?                                 @db.Timestamp(6)
+  kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_rat_koperasi_koperasi_ref_7258ec7e")
+}
+
+model kopdes_hub_sch_referensi_koperasi_wilayah {
+  koperasi_ref                     String                             @id
+  kode_wilayah                     String?
+  dibuat_pada                      DateTime?                          @db.Timestamp(6)
+  diperbarui_pada                  DateTime?                          @db.Timestamp(6)
+  kopdes_hub_sch_anggota_koperasi  kopdes_hub_sch_anggota_koperasi[]
+  kopdes_hub_sch_karyawan_koperasi kopdes_hub_sch_karyawan_koperasi[]
+  kopdes_hub_sch_pengurus_koperasi kopdes_hub_sch_pengurus_koperasi[]
+  kopdes_hub_sch_rat_koperasi      kopdes_hub_sch_rat_koperasi[]
+  kopdes_hub_sch_simpanan_anggota  kopdes_hub_sch_simpanan_anggota[]
+}
+
+model kopdes_hub_sch_referensi_wilayah {
+  provinsi                        String?
+  kab_kota                        String?
+  kecamatan                       String?
+  desa_kelurahan                  String?
+  kode_wilayah                    String                            @id
+  dibuat_pada                     DateTime?                         @db.Timestamp(6)
+  diperbarui_pada                 DateTime?                         @db.Timestamp(6)
+  kopdes_hub_sch_anggota_koperasi kopdes_hub_sch_anggota_koperasi[]
+}
+
+model kopdes_hub_sch_simpanan_anggota {
+  simpanan_ref                              String                                    @unique(map: "kopdes_hub_sch_simpanan_anggota_unique")
+  koperasi_ref                              String
+  anggota_ref                               String
+  periode_pembayaran                        String?
+  jumlah_simpanan                           Decimal?                                  @db.Decimal
+  status                                    String?
+  dibuat_pada                               DateTime?                                 @db.Timestamp(6)
+  dibayar_pada                              DateTime?                                 @db.Timestamp(6)
+  kopdes_hub_sch_anggota_koperasi           kopdes_hub_sch_anggota_koperasi           @relation(fields: [anggota_ref], references: [anggota_ref], map: "fk_simpanan_anggota_anggota_koperasi")
+  kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_simpanan_anggota_koperasi_ref_c7fd2f70")
+}
+
+model leave_requests {
+  id                                               String      @id
+  user_id                                          String
+  manager_id                                       String
+  finance_id                                       String
+  start_date                                       DateTime
+  end_date                                         DateTime
+  reason                                           String
+  status                                           LeaveStatus @default(PENDING)
+  manager_status                                   LeaveStatus @default(PENDING)
+  finance_status                                   LeaveStatus @default(PENDING)
+  created_at                                       DateTime?   @default(now())
+  updated_at                                       DateTime?
+  auth_users_leave_requests_finance_idToauth_users auth_users  @relation("leave_requests_finance_idToauth_users", fields: [finance_id], references: [id])
+  auth_users_leave_requests_manager_idToauth_users auth_users  @relation("leave_requests_manager_idToauth_users", fields: [manager_id], references: [id])
+  auth_users_leave_requests_user_idToauth_users    auth_users  @relation("leave_requests_user_idToauth_users", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([finance_id])
+  @@index([manager_id])
+  @@index([user_id])
+}
+
+model menus {
+  id          String     @id
+  name        String     @db.VarChar(50)
+  url         String     @db.VarChar(250)
+  icon        String     @db.VarChar(100)
+  sequence    Int
+  parent_id   String?
+  module      String     @db.VarChar(20)
+  type        String     @db.VarChar(20)
+  perm_id     String
+  created_at  DateTime?  @default(now())
+  created_by  String?
+  updated_at  DateTime?
+  menus       menus?     @relation("menusTomenus", fields: [parent_id], references: [id])
+  other_menus menus[]    @relation("menusTomenus")
+  auth_perms  auth_perms @relation(fields: [perm_id], references: [id], onDelete: Cascade)
+
+  @@index([perm_id])
+}
+
+model notifications {
+  id         String     @id
+  user_id    String
+  title      String     @db.VarChar(100)
+  message    String
+  is_read    Boolean    @default(false)
+  link       String?    @db.VarChar(255)
+  created_at DateTime   @default(now())
+  auth_users auth_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model projects {
+  id              String          @id
+  code            String          @unique @db.VarChar(20)
+  name            String          @db.VarChar(200)
+  description     String?
+  status          ProjectStatus   @default(ACTIVE)
+  contract_status ContractStatus  @default(POTENTIAL)
+  category        ProjectCategory @default(PROJECT)
+  year            Int?
+  contract_value  Float?
+  contract_start  DateTime?
+  contract_end    DateTime?
+  created_at      DateTime?       @default(now())
+  updated_at      DateTime?
+  created_by      String?
+  updated_by      String?
+  owner_id        String?
+  activities      activities[]
+  assignments     assignments[]
+  auth_users      auth_users?     @relation(fields: [owner_id], references: [id])
+}
+
+model system_audit_log {
+  id         String   @id
+  action     String
+  actor_id   String
+  details    Json?
+  ip_address String?
+  created_at DateTime @default(now())
+}
+
+enum ActivityStatus {
+  PENDING
+  PENDING_STATUS
+  IN_PROGRESS
+  COMPLETED
+  COMPLETED_LATE
+  LATE_WITH_REASON
+}
+
+enum AssignmentStatus {
+  PENDING
+  PENDING_STATUS
+  IN_PROGRESS
+  COMPLETED
+  COMPLETED_LATE
+  LATE_WITH_REASON
+}
+
+enum ContractStatus {
+  POTENTIAL
+  NOT_CONTRACTED
+  CONTRACTED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProjectCategory {
+  PROJECT
+  PRODUCT
+  OTHERS
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}

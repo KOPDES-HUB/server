@@ -1,0 +1,39 @@
+variables:
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  
+stages:
+  - build
+  - deploy
+
+build_image:
+  stage: build
+  image: docker:29.5.2
+  services: 
+    - docker:29.5.2-dind
+  before_script: 
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script: 
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:latest
+  only: 
+    - main
+
+deploy:
+  stage: deploy
+  before_script:
+    - apt-get update -qq && apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -p $SSH_PORT -H $IP_HOST >> ~/.ssh/known_hosts
+  script:
+    - ssh -p $SSH_PORT $USER_HOST@$IP_HOST "
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+        cd $DIR_HOST &&
+        docker pull $IMAGE_NAME:latest &&
+        docker compose up -d --force-recreate backend backend-worker
+      "
+  only:
+    - main
