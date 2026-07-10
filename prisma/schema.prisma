@@ -546,3 +546,24 @@ model kopdes_hub_sch_simpanan_anggota {
   kopdes_hub_sch_anggota_koperasi           kopdes_hub_sch_anggota_koperasi           @relation(fields: [anggota_ref], references: [anggota_ref], map: "fk_simpanan_anggota_anggota_koperasi")
   kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_simpanan_anggota_koperasi_ref_c7fd2f70")
 }
+
+model kopdes_hub_sch_profil_koperasi {
+  koperasi_ref          String    @unique(map: "kopdes_hub_sch_profil_koperasi_pk")
+  nama_koperasi         String?   @db.Text
+  status_registrasi     String?   @db.Text
+  bentuk_koperasi       String?   @db.Text
+  kategori_usaha        String?   @db.Text
+  nik_koperasi          String?   @db.Text
+  alamat_lengkap        String?   @db.Text
+  kode_pos              String?   @db.Text
+  koordinat_dibulatkan  String?   @db.Text
+  modal_awal            String?   @db.Text
+  sumber_persetujuan    String?   @db.Text
+  tentang_koperasi      String?   @db.Text
+  pola_pengelolaan      String?   @db.Text
+  metode_pengisian      String?   @db.Text
+  dibuat_pada           DateTime? @db.Timestamp(6)
+  diperbarui_pada       DateTime? @db.Timestamp(6)
+
+  @@map("profil_koperasi")
+}
