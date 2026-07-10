@@ -548,6 +548,7 @@ model kopdes_hub_sch_referensi_koperasi_wilayah {
   kopdes_hub_sch_pengurus_koperasi kopdes_hub_sch_pengurus_koperasi[]
   kopdes_hub_sch_rat_koperasi      kopdes_hub_sch_rat_koperasi[]
   kopdes_hub_sch_simpanan_anggota  kopdes_hub_sch_simpanan_anggota[]
+  kopdes_hub_sch_transaksi_penjualan kopdes_hub_sch_transaksi_penjualan[]
 }
 
 model kopdes_hub_sch_referensi_wilayah {
@@ -591,4 +592,20 @@ model kopdes_hub_sch_profil_koperasi {
   metode_pengisian      String?   @db.Text
   dibuat_pada           DateTime? @db.Timestamp(6)
   diperbarui_pada       DateTime? @db.Timestamp(6)
+}
+
+model kopdes_hub_sch_transaksi_penjualan {
+  transaksi_sample_id String    @id(map: "kopdes_hub_sch_transaksi_penjualan_pk")
+  koperasi_ref        String
+  nama_pelanggan      String?
+  tanggal_dibuat      DateTime? @db.Timestamp(6)
+  total_pembayaran    Decimal?  @db.Decimal(18, 2)
+  status_transaksi    String?
+  metode_pembayaran   String?
+  dibuat_pada         DateTime? @db.Timestamp(6)
+  diperbarui_pada     DateTime? @db.Timestamp(6)
+
+  kopdes_hub_sch_referensi_koperasi_wilayah kopdes_hub_sch_referensi_koperasi_wilayah @relation(fields: [koperasi_ref], references: [koperasi_ref], onDelete: NoAction, onUpdate: NoAction, map: "fk_transaksi_penjualan_koperasi_ref")
+
+  @@map("kopdes_hub_sch_transaksi_penjualan")
 }

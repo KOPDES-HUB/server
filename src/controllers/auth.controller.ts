@@ -32,16 +32,28 @@ const AuthController = {
       // Deteksi apakah identifier itu email atau NIK
       const isEmail = identifier.includes("@");
 
+      // const user = await prisma.authUser.findFirst({
+      //   where: isEmail ? { email: identifier } : { nik: identifier },
+      //   select: {
+      //     id: true,
+      //     email: true,
+      //     nik: true,
+      //     password: true,
+      //     banned: true,
+      //     statusRegistrasi: true,
+      //     isAdmin: true,
+      //     koperasiRef: true,
+      //   },
+      // });
+
       const user = await prisma.authUser.findFirst({
         where: isEmail ? { email: identifier } : { nik: identifier },
-        select: {
-          id: true,
-          email: true,
-          nik: true,
-          password: true,
-          banned: true,
-          statusRegistrasi: true,
-          isAdmin: true,
+        include: {
+          anggota: {
+            select: {
+              koperasi_ref: true,
+            },
+          },
         },
       });
 
@@ -73,9 +85,40 @@ const AuthController = {
       if (!isValid)
         return errorResponse(res, "Username atau password salah", 401);
 
+      // const userWithGroups = await prisma.authUser.findUnique({
+      //   where: { id: user.id },
+      //   include: {
+      //     authUserToGroup: {
+      //       include: {
+      //         group: {
+      //           include: {
+      //             authPermToGroup: {
+      //               include: {
+      //                 permission: {
+      //                   include: { menus: true },
+      //                 },
+      //               },
+      //             },
+      //           },
+      //         },
+      //       },
+      //     },
+      //   },
+      // });
+
       const userWithGroups = await prisma.authUser.findUnique({
-        where: { id: user.id },
+        where: {
+          id: user.id,
+        },
         include: {
+          anggota: {
+            select: {
+              anggota_ref: true,
+              koperasi_ref: true,
+              nomor_kta: true,
+              status_keanggotaan: true,
+            },
+          },
           authUserToGroup: {
             include: {
               group: {
@@ -83,7 +126,9 @@ const AuthController = {
                   authPermToGroup: {
                     include: {
                       permission: {
-                        include: { menus: true },
+                        include: {
+                          menus: true,
+                        },
                       },
                     },
                   },
@@ -132,6 +177,11 @@ const AuthController = {
           menus: userMenus,
           isAdmin: userWithGroups.isAdmin,
           statusRegistrasi: userWithGroups.statusRegistrasi,
+          
+          koperasiRef: userWithGroups.koperasiRef ?? null,
+          anggotaRef: userWithGroups.anggota?.anggota_ref ?? null,
+          nomorKta: userWithGroups.anggota?.nomor_kta ?? null,
+          statusKeanggotaan: userWithGroups.anggota?.status_keanggotaan ?? null,
         },
       });
     } catch (error) {
