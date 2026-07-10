@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import argon2 from "argon2";
 import { prisma } from "../lib/prisma";
 import { errorResponse, successResponse } from "../lib/response";
 
@@ -19,7 +18,7 @@ import { errorResponse, successResponse } from "../lib/response";
 
   export const getById = async (req: Request, res: Response) => {
     try {
-      const { koperasi_ref } = req.params;
+      const koperasi_ref = req.params.koperasi_ref as string;
   
       const data =
         await prisma.kopdes_hub_sch_profil_koperasi.findUnique({
@@ -49,7 +48,7 @@ import { errorResponse, successResponse } from "../lib/response";
   
       const skip = (page - 1) * limit;
   
-      const where = search
+      const where: any = search
         ? {
             OR: [
               {
@@ -142,7 +141,7 @@ import { errorResponse, successResponse } from "../lib/response";
     res: Response,
   ) => {
     try {
-      const { koperasi_ref } = req.params;
+      const koperasi_ref = req.params.koperasi_ref as string;
   
       const exist =
         await prisma.kopdes_hub_sch_profil_koperasi.findUnique({

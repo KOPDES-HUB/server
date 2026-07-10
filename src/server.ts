@@ -29,6 +29,11 @@ import { startTelegramBot } from "./services/telegramBot";
 
 import anggotaKoperasiRoute from "../src/routes/anggotaKoperasi.route";
 import karyawanKoperasiRoute from "../src/routes/karyawanKoperasi.route";
+import pengurusKoperasiRoute from "../src/routes/pengurusKoperasi.route";
+import ratKoperasiRoute from "../src/routes/ratKoperasi.route";
+import referensiKoperasiWilayahRoute from "../src/routes/referensiKoperasiWilayah.route";
+import referensiWilayahRoute from "../src/routes/referensiWilayah.route";
+import simpananAnggotaRoute from "../src/routes/simpananAnggota.route";
 import profilKoperasiRoute from "../src/routes/profilKoperasi.route";
 
 import { authenticate } from "./middlewares/authenticate.middleware";
@@ -122,6 +127,15 @@ app.use("/api/application-info", authenticate, applicationInfoRoute);
 
 app.use("/api/anggota-koperasi", authenticate, anggotaKoperasiRoute);
 app.use("/api/karyawan-koperasi", authenticate, karyawanKoperasiRoute);
+app.use("/api/pengurus-koperasi", authenticate, pengurusKoperasiRoute);
+app.use("/api/rat-koperasi", authenticate, ratKoperasiRoute);
+app.use(
+  "/api/referensi-koperasi-wilayah",
+  authenticate,
+  referensiKoperasiWilayahRoute,
+);
+app.use("/api/referensi-wilayah", authenticate, referensiWilayahRoute);
+app.use("/api/simpanan-anggota", authenticate, simpananAnggotaRoute);
 app.use("/api/profil-koperasi", profilKoperasiRoute);
 
 app.use(
