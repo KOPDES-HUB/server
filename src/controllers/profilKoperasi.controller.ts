@@ -208,14 +208,17 @@ export const checkLocation = async (req: Request, res: Response) => {
     //   }
     // }
 
-    const radius = 5; // kilometer
+    const radius = 10; // kilometer
 
     const result = [];
 
     for (const item of koperasi) {
       if (!item.koordinat_dibulatkan) continue;
 
-      const [lng, latitude] = item.koordinat_dibulatkan.split(",").map(Number);
+      // Format DB: "latitude,longitude" (contoh: -6.154, 106.829)
+      const [latitude, lng] = item.koordinat_dibulatkan
+        .split(",")
+        .map((v) => Number(v.trim()));
 
       const distance = calculateDistance(lat, long, latitude, lng);
 
