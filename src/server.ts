@@ -87,6 +87,24 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
+    // #region agent log
+    fetch("http://127.0.0.1:7591/ingest/e37e4eb2-1953-4214-a75b-ed7e54685425", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "6f6c76" },
+      body: JSON.stringify({
+        sessionId: "6f6c76",
+        hypothesisId: "A",
+        location: "server.ts:cors",
+        message: "cors origin check",
+        data: {
+          origin: origin ?? null,
+          allowedOrigins,
+          allowed: !origin || allowedOrigins.includes(origin),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     // allow REST client / server-to-server (no origin)
     if (!origin) return callback(null, true);
 
