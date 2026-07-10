@@ -41,6 +41,7 @@ const AuthController = {
           password: true,
           banned: true,
           statusRegistrasi: true,
+          isAdmin: true,
         },
       });
 
@@ -129,6 +130,8 @@ const AuthController = {
           email: userWithGroups.email,
           roles: userRoleIds,
           menus: userMenus,
+          isAdmin: userWithGroups.isAdmin,
+          statusRegistrasi: userWithGroups.statusRegistrasi,
         },
       });
     } catch (error) {

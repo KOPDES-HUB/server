@@ -77,7 +77,7 @@ model AuthUser {
   password         String?   @db.VarChar(255)
   username         String    @db.VarChar(100)
 
-  isAdmin          Boolean   @default(false) @map("is_admin")
+  isAdmin          Boolean?   @default(false) @map("is_admin")
 
   statusRegistrasi StatusRegistrasiAkun @default(DIAJUKAN) @map("status_registrasi")
   alasanPenolakan  String?              @map("alasan_penolakan") @db.Text
