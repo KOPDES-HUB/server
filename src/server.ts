@@ -28,6 +28,7 @@ import TelegramController from "./controllers/telegram.controller";
 import { startTelegramBot } from "./services/telegramBot";
 
 import anggotaKoperasiRoute from "../src/routes/anggotaKoperasi.route";
+import karyawanKoperasiRoute from "../src/routes/karyawanKoperasi.route";
 import profilKoperasiRoute from "../src/routes/profilKoperasi.route";
 
 import { authenticate } from "./middlewares/authenticate.middleware";
@@ -120,6 +121,7 @@ app.use("/api/telegram", authenticate, telegramRoute);
 app.use("/api/application-info", authenticate, applicationInfoRoute);
 
 app.use("/api/anggota-koperasi", authenticate, anggotaKoperasiRoute);
+app.use("/api/karyawan-koperasi", authenticate, karyawanKoperasiRoute);
 app.use("/api/profil-koperasi", profilKoperasiRoute);
 
 app.use(
