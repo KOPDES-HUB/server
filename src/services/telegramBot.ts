@@ -152,7 +152,7 @@ async function handleUpdate(update: any) {
 
       await sendBotMessage(
         chatId,
-        `✅ <b>Registrasi Berhasil!</b>\n\nHalo <b>${username}</b>, akun Anda berhasil ditautkan ke sistem <b>Manajemen Proyek BIT</b>. Anda akan menerima notifikasi penugasan dan aktivitas proyek di sini.`,
+        `✅ <b>Registrasi Berhasil!</b>\n\nHalo <b>${username}</b>, akun Anda berhasil ditautkan ke sistem <b></b>. Anda akan menerima notifikasi penugasan dan aktivitas proyek di sini.`,
       );
 
       console.log(
@@ -168,7 +168,7 @@ async function handleUpdate(update: any) {
   } else if (text === "/help") {
     await sendBotMessage(
       chatId,
-      "ℹ️ <b>Bantuan Bot</b>\n\nBot ini berfungsi untuk mengirimkan notifikasi dari sistem Manajemen Proyek BIT. Jika ingin memutus tautan akun, silakan lakukan melalui menu Pengaturan Notifikasi di aplikasi web.",
+      "ℹ️ <b>Bantuan Bot</b>\n\nBot ini berfungsi untuk mengirimkan notifikasi dari sistem . Jika ingin memutus tautan akun, silakan lakukan melalui menu Pengaturan Notifikasi di aplikasi web.",
     );
   } else {
     await sendBotMessage(
