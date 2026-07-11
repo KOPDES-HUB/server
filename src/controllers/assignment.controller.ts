@@ -7,8 +7,8 @@ import {
 } from "../schemas/assignment.schema";
 import ExcelJS from "exceljs";
 import { stripHtml } from "../utils/string";
-import { emailQueue } from "../queues/emailQueue";
-import { telegramQueue } from "../queues/telegramQueue";
+import { addEmailJob } from "../queues/emailQueue";
+import { addTelegramJob } from "../queues/telegramQueue";
 
 const AssignmentController = {
   getAll: async (req: Request, res: Response) => {
@@ -294,7 +294,7 @@ const AssignmentController = {
 
       // Send email notification if preference is enabled
       if (user.notifyEmail) {
-        await emailQueue.add("task-assigned", {
+        await addEmailJob("task-assigned", {
           type: "task-assigned",
           taskId: assignment.id,
           to: user.email,
@@ -318,7 +318,7 @@ const AssignmentController = {
         const appUrl = process.env.APP_URL || "http://localhost:5173";
         const link = `${appUrl}/my-tasks/${assignment.id}`;
 
-        await telegramQueue.add("task-assigned", {
+        await addTelegramJob("task-assigned", {
           chatId: user.telegramChatId,
           message: `📋 <b>TUGAS BARU</b>\n\nHalo <b>${user.username}</b>,\nAnda telah ditugaskan oleh <b>${req.user!.username}</b> pada proyek <b>${project.name}</b>.\n\nJudul Tugas: <b>${title}</b>\nDeskripsi: <i>${displayDesc}</i>\nBatas Waktu: <b>${dateStr} WIB</b>\n\nSilakan cek detail tugas di aplikasi web.`,
           link,
@@ -445,7 +445,7 @@ const AssignmentController = {
           });
 
           if (newUser.notifyEmail) {
-            await emailQueue.add("task-assigned", {
+            await addEmailJob("task-assigned", {
               type: "task-assigned",
               taskId: result.id,
               to: newUser.email,
@@ -468,7 +468,7 @@ const AssignmentController = {
             const appUrl = process.env.APP_URL || "http://localhost:5173";
             const link = `${appUrl}/my-tasks/${result.id}`;
 
-            await telegramQueue.add("task-assigned", {
+            await addTelegramJob("task-assigned", {
               chatId: newUser.telegramChatId,
               message: `📋 <b>TUGAS BARU (DIALIHKAN)</b>\n\nHalo <b>${newUser.username}</b>,\nSebuah tugas telah dialihkan ke Anda oleh <b>${req.user!.username}</b> pada proyek <b>${exists.project.name}</b>.\n\nJudul Tugas: <b>${title}</b>\nDeskripsi: <i>${displayDesc}</i>\nBatas Waktu: <b>${dateStr} WIB</b>\n\nSilakan cek detail tugas di aplikasi web.`,
               link,

@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { redisConnection } from "../config/redis";
+import { deleteToken, getToken } from "../lib/tokenStore";
 
 let isPolling = false;
 let pollingOffset = 0;
@@ -127,7 +127,7 @@ async function handleUpdate(update: any) {
 
     const regToken = parts[1];
     const redisKey = `telegram_reg:${regToken}`;
-    const userId = await redisConnection.get(redisKey);
+    const userId = await getToken(redisKey);
 
     if (!userId) {
       await sendBotMessage(
@@ -148,7 +148,7 @@ async function handleUpdate(update: any) {
       });
 
       // Clear token
-      await redisConnection.del(redisKey);
+      await deleteToken(redisKey);
 
       await sendBotMessage(
         chatId,

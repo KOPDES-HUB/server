@@ -6,21 +6,24 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 import cron from "node-cron";
 import { prisma } from "./lib/prisma";
-import { emailQueue } from "./queues/emailQueue";
+import { addEmailJob } from "./queues/emailQueue";
 import emailWorker from "./queues/emailWorker";
-import { telegramQueue } from "./queues/telegramQueue";
+import { addTelegramJob } from "./queues/telegramQueue";
 import telegramWorker from "./queues/telegramWorker";
 
 console.log("🚀 Starting background worker...");
 
-// Log worker status
-emailWorker.on("ready", () => {
-  console.log("✅ Email BullMQ Worker is ready to process jobs");
-});
+if (emailWorker) {
+  emailWorker.on("ready", () => {
+    console.log("✅ Email BullMQ Worker is ready to process jobs");
+  });
+}
 
-telegramWorker.on("ready", () => {
-  console.log("✅ Telegram BullMQ Worker is ready to process jobs");
-});
+if (telegramWorker) {
+  telegramWorker.on("ready", () => {
+    console.log("✅ Telegram BullMQ Worker is ready to process jobs");
+  });
+}
 
 // Cron job running every 1 minute to check for deadlines 10 minutes away
 cron.schedule("* * * * *", async () => {
@@ -66,7 +69,7 @@ cron.schedule("* * * * *", async () => {
       try {
         // Queue Email reminder if preference is enabled
         if (assignment.assignedTo.notifyEmail) {
-          await emailQueue.add("deadline-reminder", {
+          await addEmailJob("deadline-reminder", {
             type: "deadline-reminder",
             taskId: assignment.id,
             to: assignment.assignedTo.email,
@@ -96,7 +99,7 @@ cron.schedule("* * * * *", async () => {
           const appUrl = process.env.APP_URL || "http://localhost:5173";
           const link = `${appUrl}/my-tasks/${assignment.id}`;
 
-          await telegramQueue.add("deadline-reminder", {
+          await addTelegramJob("deadline-reminder", {
             chatId: assignment.assignedTo.telegramChatId,
             message: `⏰ <b>PENGINGAT DEADLINE</b>\n\nHalo <b>${assignment.assignedTo.username}</b>,\nTugas "<b>${assignment.title}</b>" mendekati batas waktu pengerjaan.\n\nDeskripsi: <i>${displayDesc}</i>\nBatas Waktu: <b>${dateStr} WIB</b>\n\nHarap segera menyelesaikan pekerjaan Anda. Terima kasih!`,
             link,

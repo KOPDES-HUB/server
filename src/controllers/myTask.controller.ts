@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { errorResponse, successResponse } from "../lib/response";
 import { AssignmentStatusSchema } from "../schemas/assignment.schema";
-import { emailQueue } from "../queues/emailQueue";
-import { telegramQueue } from "../queues/telegramQueue";
+import { addEmailJob } from "../queues/emailQueue";
+import { addTelegramJob } from "../queues/telegramQueue";
 
 const MyTaskController = {
   getMyTasks: async (req: Request, res: Response) => {
@@ -198,7 +198,7 @@ const MyTaskController = {
         status === "LATE_WITH_REASON"
       ) {
         if (task.assignedBy.notifyEmail) {
-          await emailQueue.add("task-completed", {
+          await addEmailJob("task-completed", {
             type: "task-completed",
             taskId: task.id,
             to: task.assignedBy.email,
@@ -220,7 +220,7 @@ const MyTaskController = {
           const appUrl = process.env.APP_URL || "http://localhost:5173";
           const link = `${appUrl}/assignments/${task.id}`;
 
-          await telegramQueue.add("task-completed", {
+          await addTelegramJob("task-completed", {
             chatId: task.assignedBy.telegramChatId,
             message: `✅ <b>TUGAS SELESAI</b>\n\nHalo <b>${task.assignedBy.username}</b>,\nTugas "<b>${task.title}</b>" telah diselesaikan oleh <b>${task.assignedTo.username}</b>.\n\nDeskripsi: <i>${displayDesc}</i>\nStatus Baru: <b>${status}</b>\nWaktu Selesai: <b>${completedDateStr} WIB</b>${note ? `\nCatatan: <i>${note}</i>` : ""}\n\nSilakan periksa pekerjaan tersebut di aplikasi web.`,
             link,

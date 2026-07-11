@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
-import { redisConnection } from "../config/redis";
+import { setToken } from "../lib/tokenStore";
 import { errorResponse, successResponse } from "../lib/response";
 import crypto from "crypto";
 import { handleWebhookUpdate } from "../services/telegramBot";
@@ -25,7 +25,7 @@ const TelegramController = {
       const redisKey = `telegram_reg:${token}`;
 
       // Simpan di redis selama 10 menit
-      await redisConnection.set(redisKey, userId, "EX", 600);
+      await setToken(redisKey, userId, 600);
 
       const botUrl = `https://t.me/${botUsername}?start=${token}`;
 

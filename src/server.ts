@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
 import cors, { CorsOptions } from "cors";
@@ -44,14 +45,16 @@ import path from "path";
 // Aplikasi express
 const app = express();
 
-// Bull Board Dashboard (Mounted before Helmet to avoid CSP blocking)
-const serverAdapter = new ExpressAdapter();
-serverAdapter.setBasePath("/admin/queues");
-createBullBoard({
-  queues: [new BullMQAdapter(emailQueue)],
-  serverAdapter: serverAdapter,
-});
-app.use("/admin/queues", serverAdapter.getRouter());
+// Bull Board Dashboard (only when Redis queue is available)
+if (emailQueue) {
+  const serverAdapter = new ExpressAdapter();
+  serverAdapter.setBasePath("/admin/queues");
+  createBullBoard({
+    queues: [new BullMQAdapter(emailQueue)],
+    serverAdapter: serverAdapter,
+  });
+  app.use("/admin/queues", serverAdapter.getRouter());
+}
 
 app.set("trust proxy", 1);
 app.use(morgan("dev"));

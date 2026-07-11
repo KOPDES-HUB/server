@@ -7,8 +7,8 @@ import {
 } from "../schemas/activity.schema";
 import ExcelJS from "exceljs";
 import { stripHtml } from "../utils/string";
-import { emailQueue } from "../queues/emailQueue";
-import { telegramQueue } from "../queues/telegramQueue";
+import { addEmailJob } from "../queues/emailQueue";
+import { addTelegramJob } from "../queues/telegramQueue";
 
 const ActivityController = {
   getAll: async (req: Request, res: Response) => {
@@ -198,7 +198,7 @@ const ActivityController = {
           status === "LATE_WITH_REASON"
         ) {
           if (supervisor.notifyEmail) {
-            await emailQueue.add("task-completed", {
+            await addEmailJob("task-completed", {
               type: "task-completed",
               taskId: assignment.id,
               to: supervisor.email,
@@ -220,7 +220,7 @@ const ActivityController = {
             const appUrl = process.env.APP_URL || "http://localhost:5173";
             const link = `${appUrl}/assignments/${assignment.id}`;
 
-            await telegramQueue.add("task-completed", {
+            await addTelegramJob("task-completed", {
               chatId: supervisor.telegramChatId,
               message: `✅ <b>TUGAS SELESAI (DARI AKTIVITAS)</b>\n\nHalo <b>${supervisor.username}</b>,\nTugas "<b>${title}</b>" telah diselesaikan oleh <b>${req.user!.username}</b>.\n\nDeskripsi: <i>${displayDesc}</i>\nStatus Baru: <b>${status}</b>\nWaktu Selesai: <b>${completedDateStr} WIB</b>\n\nSilakan periksa pekerjaan tersebut di aplikasi web.`,
               link,
@@ -348,7 +348,7 @@ const ActivityController = {
           status === "LATE_WITH_REASON"
         ) {
           if (supervisor.notifyEmail) {
-            await emailQueue.add("task-completed", {
+            await addEmailJob("task-completed", {
               type: "task-completed",
               taskId: result.id,
               to: supervisor.email,
@@ -370,7 +370,7 @@ const ActivityController = {
             const appUrl = process.env.APP_URL || "http://localhost:5173";
             const link = `${appUrl}/assignments/${result.id}`;
 
-            await telegramQueue.add("task-completed", {
+            await addTelegramJob("task-completed", {
               chatId: supervisor.telegramChatId,
               message: `✅ <b>TUGAS SELESAI (DARI AKTIVITAS)</b>\n\nHalo <b>${supervisor.username}</b>,\nTugas "<b>${title}</b>" telah diselesaikan oleh <b>${req.user!.username}</b>.\n\nDeskripsi: <i>${displayDesc}</i>\nStatus Baru: <b>${status}</b>\nWaktu Selesai: <b>${completedDateStr} WIB</b>\n\nSilakan periksa pekerjaan tersebut di aplikasi web.`,
               link,
