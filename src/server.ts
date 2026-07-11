@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressAdapter } from "@bull-board/express";
-// import { emailQueue } from "./queues/emailQueue";
+import { emailQueue } from "./queues/emailQueue";
 
 import authRoute from "../src/routes/auth.route";
 import permissionRoute from "../src/routes/permission.route";
@@ -22,10 +22,10 @@ import dashboardRoute from "../src/routes/dashboard.route";
 import activityRoute from "../src/routes/activity.route";
 import employeeActivityRoute from "../src/routes/employeeActivity.route";
 import leaveRoute from "../src/routes/leave.route";
-// import telegramRoute from "../src/routes/telegram.route";
-// import applicationInfoRoute from "../src/routes/applicationInfo.route";
-// import TelegramController from "./controllers/telegram.controller";
-// import { startTelegramBot } from "./services/telegramBot";
+import telegramRoute from "../src/routes/telegram.route";
+import applicationInfoRoute from "../src/routes/applicationInfo.route";
+import TelegramController from "./controllers/telegram.controller";
+import { startTelegramBot } from "./services/telegramBot";
 
 import anggotaKoperasiRoute from "../src/routes/anggotaKoperasi.route";
 import karyawanKoperasiRoute from "../src/routes/karyawanKoperasi.route";
@@ -47,10 +47,10 @@ const app = express();
 // Bull Board Dashboard (Mounted before Helmet to avoid CSP blocking)
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
-// createBullBoard({
-//   queues: [new BullMQAdapter(emailQueue)],
-//   serverAdapter: serverAdapter,
-// });
+createBullBoard({
+  queues: [new BullMQAdapter(emailQueue)],
+  serverAdapter: serverAdapter,
+});
 app.use("/admin/queues", serverAdapter.getRouter());
 
 app.set("trust proxy", 1);
@@ -129,7 +129,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use("/api/auth", authRoute);
-// app.post("/api/telegram/webhook", TelegramController.webhook);
+app.post("/api/telegram/webhook", TelegramController.webhook);
 app.use("/api/permissions", authenticate, permissionRoute);
 app.use("/api/menus", authenticate, menuRoute);
 app.use("/api/roles", authenticate, roleRoute);
@@ -142,8 +142,8 @@ app.use("/api/dashboard", authenticate, dashboardRoute);
 app.use("/api/my-activities", authenticate, activityRoute);
 app.use("/api/employee-activities", authenticate, employeeActivityRoute);
 app.use("/api/leaves", authenticate, leaveRoute);
-// app.use("/api/telegram", authenticate, telegramRoute);
-// app.use("/api/application-info", authenticate, applicationInfoRoute);
+app.use("/api/telegram", authenticate, telegramRoute);
+app.use("/api/application-info", authenticate, applicationInfoRoute);
 
 app.use("/api/anggota-koperasi", authenticate, anggotaKoperasiRoute);
 app.use("/api/karyawan-koperasi", authenticate, karyawanKoperasiRoute);
@@ -177,5 +177,5 @@ const port = process.env.PORT || 8080;
 
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
-  // startTelegramBot();
+  startTelegramBot();
 });
