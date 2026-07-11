@@ -12,13 +12,7 @@ Backend REST API untuk platform **SIMPUL Merah Putih** / KOPDESHUB. Menyediakan 
 | Database | [PostgreSQL](https://www.postgresql.org) |
 | Cache & Queue | [Redis](https://redis.io) + [BullMQ](https://docs.bullmq.io) |
 | Autentikasi | JWT (access + refresh token via cookie), [Argon2](https://github.com/ranisalt/node-argon2) |
-| OAuth | [Passport Google OAuth 2.0](https://www.passportjs.org/packages/passport-google-oauth20/) |
 | Validasi | [Zod](https://zod.dev) |
-| Email | [Nodemailer](https://nodemailer.com) |
-| Pembayaran | [Midtrans](https://midtrans.com) |
-| Bot | Telegram Bot API |
-| Keamanan | Helmet, CORS, express-rate-limit |
-| Upload File | Multer |
 
 ## Arsitektur
 
