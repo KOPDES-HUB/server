@@ -5,7 +5,14 @@ import {
   deadlineReminderTemplate,
 } from "../templates/emailTemplates";
 
-const from = `"${process.env.APP_NAME}" <${process.env.SMTP_USER}>`;
+const from = `"${process.env.APP_NAME || "App"}" <${process.env.SMTP_USER || "no-reply@localhost"}>`;
+
+async function sendMailOrSkip(
+  options: Parameters<NonNullable<typeof transporter>["sendMail"]>[0],
+): Promise<void> {
+  if (!transporter) return;
+  await transporter.sendMail(options);
+}
 
 // ─── 1. Kirim ke karyawan saat ditugaskan ───────────────────
 export const sendTaskAssignedEmail = async (params: {
@@ -17,7 +24,7 @@ export const sendTaskAssignedEmail = async (params: {
   deadline: string;
   assignedBy: string;
 }) => {
-  await transporter.sendMail({
+  await sendMailOrSkip({
     from,
     to: params.to,
     subject: `Tugas Baru: ${params.taskTitle}`,
@@ -34,7 +41,7 @@ export const sendTaskCompletedEmail = async (params: {
   taskTitle: string;
   completedAt: string;
 }) => {
-  await transporter.sendMail({
+  await sendMailOrSkip({
     from,
     to: params.to,
     subject: `Tugas Selesai: ${params.taskTitle}`,
@@ -50,7 +57,7 @@ export const sendDeadlineReminderEmail = async (params: {
   taskTitle: string;
   deadline: string;
 }) => {
-  await transporter.sendMail({
+  await sendMailOrSkip({
     from,
     to: params.to,
     subject: `Reminder: "${params.taskTitle}" deadline 10 menit lagi!`,
