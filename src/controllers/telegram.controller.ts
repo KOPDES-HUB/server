@@ -25,7 +25,7 @@ const TelegramController = {
       const redisKey = `telegram_reg:${token}`;
 
       // Simpan di redis selama 10 menit
-      await redisConnectionzz.set(redisKey, userId, "EX", 600);
+      await redisConnection.set(redisKey, userId, "EX", 600);
 
       const botUrl = `https://t.me/${botUsername}?start=${token}`;
 
