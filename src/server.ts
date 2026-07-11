@@ -36,6 +36,7 @@ import referensiWilayahRoute from "../src/routes/referensiWilayah.route";
 import simpananAnggotaRoute from "../src/routes/simpananAnggota.route";
 import profilKoperasiRoute from "../src/routes/profilKoperasi.route";
 import transaksiPenjualanRoute from "../src/routes/transaksiPenjualan.route";
+import koperasiRoute from "../src/routes/koperasi.route";
 
 import { authenticate } from "./middlewares/authenticate.middleware";
 import path from "path";
@@ -156,6 +157,7 @@ app.use(
 app.use("/api/referensi-wilayah", authenticate, referensiWilayahRoute);
 app.use("/api/simpanan-anggota", authenticate, simpananAnggotaRoute);
 app.use("/api/profil-koperasi", profilKoperasiRoute);
+app.use("/api/koperasi", authenticate, koperasiRoute);
 // app.use("/api/transaksi-penjualan", authenticate, transaksiPenjualanRoute);
 app.use("/api/transaksi-penjualan", authenticate, transaksiPenjualanRoute);
 
