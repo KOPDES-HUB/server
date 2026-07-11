@@ -148,7 +148,7 @@ async function handleUpdate(update: any) {
       });
 
       // Clear token
-      await redisConnection.del(redisKey);
+      await redisConnection?.del(redisKey);
 
       await sendBotMessage(
         chatId,
